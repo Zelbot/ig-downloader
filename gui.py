@@ -22,7 +22,6 @@ class Application:
     """
     window_width = 1000
     window_height = 600
-    window_color = 'grey'
 
     border_width = 5
     border_color = 'black'
@@ -35,7 +34,6 @@ class Application:
         'bottom_frame', 'download_tracking_label', 'download_tracking_bar',
     )
 
-    # TODO: Color
     def __init__(self, root):
         self.root = root
 
@@ -74,11 +72,11 @@ class Application:
         """
         self.left_frame = tk.Frame(
             self.root,
-            bg='grey',
+            bg=MID_GREY,
             width=self.window_width / 3,
             height=self.window_height - self.border_width * 40,
-            highlightbackground='lightblue',
-            highlightcolor='lightblue',
+            highlightbackground=self.border_color,
+            highlightcolor=self.border_color,
             highlightthickness=self.border_width,
         )
         self.left_frame.grid(row=0, column=0)
@@ -86,6 +84,7 @@ class Application:
 
         self.url_label = tk.Label(
             self.left_frame,
+            bg=MID_GREY,
             text='Enter URLs:',
             font=('Arial', 15, 'bold')
         )
@@ -114,6 +113,7 @@ class Application:
 
         self.url_check_label = tk.Label(
             self.left_frame,
+            bg=MID_GREY,
             font=('Arial', 12)
         )
         self.url_check_label.place(relx=0.5, rely=0.6, anchor='center')
@@ -136,11 +136,11 @@ class Application:
         """
         self.mid_frame = tk.Frame(
             self.root,
-            bg='lightgrey',
+            bg=MID_GREY,
             width=self.window_width / 3,
             height=self.window_height - self.border_width * 40,
-            highlightbackground='green',
-            highlightcolor='blue',
+            highlightbackground=self.border_color,
+            highlightcolor=self.border_color,
             highlightthickness=self.border_width,
         )
         self.mid_frame.grid(row=0, column=1)
@@ -151,6 +151,7 @@ class Application:
 
         self.url_tracking_label = tk.Label(
             self.mid_frame,
+            bg=MID_GREY,
             text='Saved URLs:',
             font=('Arial', 15, 'bold'),
         )
@@ -160,7 +161,7 @@ class Application:
 
         self.url_tracking_text = ScrollText(
             self.mid_frame,
-            bg='lightgrey',
+            bg=MID_GREY,
             font=('Arial', 10),
             borderwidth=0,
         )
@@ -172,11 +173,11 @@ class Application:
         """
         self.right_frame = tk.Frame(
             self.root,
-            bg='orange',
+            bg=MID_GREY,
             width=self.window_width / 3,
             height=self.window_height - self.border_width * 40,
-            highlightbackground='lightblue',
-            highlightcolor='lightblue',
+            highlightbackground=self.border_color,
+            highlightcolor=self.border_color,
             highlightthickness=self.border_width,
         )
         self.right_frame.grid(row=0, column=2)
@@ -186,7 +187,7 @@ class Application:
 
         self.log_text = ScrollText(
             self.right_frame,
-            bg='grey',
+            bg=MID_GREY,
             font=('Arial', 10),
             borderwidth=0,
         )
@@ -198,11 +199,11 @@ class Application:
         """
         self.bottom_frame = tk.Frame(
             self.root,
-            bg='purple',
+            bg=MID_GREY,
             width=self.window_width,
             height=self.border_width * 40,
-            highlightbackground='blue',
-            highlightcolor='blue',
+            highlightbackground=self.border_color,
+            highlightcolor=self.border_color,
             highlightthickness=self.border_width,
         )
         self.bottom_frame.grid(row=1, column=0, columnspan=3)
@@ -210,6 +211,7 @@ class Application:
 
         self.download_tracking_label = tk.Label(
             self.bottom_frame,
+            bg=MID_GREY,
             text='Downloaded 0 / 0 files',
             font=('Arial', 15, 'bold')
         )
@@ -371,8 +373,6 @@ class LoginWindow(tk.Toplevel):
     window_width = 200
     window_height = 150
 
-    window_color = 'grey'
-
     __slots__ = (
         'driver', 'username', 'password', 'two_fa',
         'frame', 'username_label', 'username_entry',
@@ -381,7 +381,6 @@ class LoginWindow(tk.Toplevel):
         'confirm_button', 'logging_in_label'
     )
 
-    # TODO: Color
     def __init__(self, driver):
         tk.Toplevel.__init__(self)
 

@@ -20,7 +20,7 @@ def main():
     root.title('IG Downloader - Github/Zelbot')
     root.geometry(f'{app.window_width}x{app.window_height}'
                   f'+{window_x}+{window_y}')
-    root.configure(background='green')
+    root.configure(background=app.border_color)
     root.resizable(width=False, height=False)
 
     root.mainloop()
