@@ -33,31 +33,11 @@ class Scraper:
         user = self.get_user(data)
         return user['is_private']
 
-    # @staticmethod
-    # def request_soup(url):
-    #     """
-    #     Get the html source of a url via a request and prepare the
-    #     associated BeautifulSoup object to be parsed.
-    #     """
-    #     res = requests.get(url, headers=config.headers)
-    #     soup = BeautifulSoup(res.content, features='html.parser')
-    #     return soup
-
     @staticmethod
     def get_data(soup):
         """
         Extract the JSON data from an Instagram page's HTML source code.
         """
-        # # Used requests
-        # if len(soup.find_all('script')) == 14:
-        #     script = soup.find_all('script')[4]
-        # # Used webdriver, private profile
-        # elif len(soup.find_all('script')) == 13:
-        #     script = soup.find_all('script')[4]
-        # # Used webdriver, public profile (length of 17)
-        # else:
-        #     script = soup.find_all('script')[8]
-
         # Look for script tag holding JSON data, raise if none found
         for s in soup.find_all('script'):
             if s.text.startswith('window._sharedData'):
@@ -70,25 +50,6 @@ class Scraper:
         # Remove 'window._sharedData = ' from the start, as well as the trailing semicolon
         # data = json.loads(script.text[21:-1])
         data = json.loads('='.join(script.text.split('=')[1:]).strip()[:-1])
-
-        # try:
-        #     data = json.loads('='.join(script.text.split('=')[1:]).strip()[:-1])
-        # except json.decoder.JSONDecodeError:
-        #     joined = '='.join(script.text.split('=')[1:]).strip()[:-1]
-        #     # Fix malformed JSON of private profile
-        #     fixed_text = joined.replace('"{', '{').replace('}"', '}')
-        #
-        #
-        #     import pickle
-        #     with open('script.pickle', 'wb') as sp:
-        #         pickle.dump(script.text, sp, protocol=pickle.HIGHEST_PROTOCOL)
-        #
-        #     with open('fixed.pickle', 'wb') as fp:
-        #         pickle.dump(fixed_text, fp, protocol=pickle.HIGHEST_PROTOCOL)
-        #
-        #     data = json.loads(fixed_text)
-
-
         return data
 
     @staticmethod

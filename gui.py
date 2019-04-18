@@ -292,7 +292,9 @@ class Application:
 
             if self.scraper.is_private(data) and self.driver.is_logged_in is False:
                 def show_root(_):
-                    # Needed for the pos arg getting passed with tkinter bindings
+                    """
+                    Needed for the pos arg getting passed with tkinter bindings.
+                    """
                     self.root.deiconify()
                     self.process_url(url)
                     # Not unbinding here would lead to an infinite loop
@@ -566,21 +568,3 @@ class ScrollText(tk.Text):
 
         self.yview(tk.END)
         self.configure(state='disabled')
-
-
-# if __name__ == '__main__':
-#     root = tk.Tk()
-#     app = Application(root)
-#
-#     screen_width = root.winfo_screenwidth()
-#     screen_height = root.winfo_screenheight()
-#     window_x = int(screen_width - app.window_width * 1.5)
-#     window_y = int(screen_height * 0.1)
-#
-#     root.title('IG Downloader - Github/Zelbot')
-#     root.geometry(f'{app.window_width}x{app.window_height}'
-#                   f'+{window_x}+{window_y}')
-#     root.configure(background='green')
-#     root.resizable(False, False)
-#
-#     root.mainloop()
