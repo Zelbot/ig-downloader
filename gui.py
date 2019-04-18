@@ -510,7 +510,10 @@ class LoginWindow(tk.Toplevel):
         self.destroy()
 
 class ScrollText(tk.Text):
-
+    """
+    Subclass tk.Text so we can get a text widget
+    and create methods that make it easier to use.
+    """
     __slots__ = ()
 
     def __init__(self, *args, **kwargs):
