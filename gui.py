@@ -9,7 +9,6 @@ from bs4 import BeautifulSoup
 from driver import Driver
 from scraping import Scraper
 
-
 LIGHT_GREY = "#e1e1ff"  # (225, 225, 255)
 ALT_GREY = '#dcdcdc'  # (220, 220, 220)
 MID_GREY = "#afafaf"  # (175, 175, 175)
@@ -65,7 +64,6 @@ class Application:
         self.driver.start_driver()  # Start webdriver to be used for scraping
         self.login = None
 
-
     def setup_left_frame(self):
         """
         Set up the left frame of the application's window.
@@ -89,7 +87,6 @@ class Application:
             font=('Arial', 15, 'bold')
         )
         self.url_label.place(relx=0.5, rely=0.3, anchor='center')
-
 
         self.url_entry = tk.Entry(
             self.left_frame,
@@ -378,7 +375,7 @@ class LoginWindow(tk.Toplevel):
         'frame', 'username_label', 'username_entry',
         'password_label', 'password_entry',
         'two_fa_label', 'two_fa_entry',
-        'confirm_button', 'logging_in_label'
+        'confirm_button',
     )
 
     def __init__(self, driver):
@@ -392,7 +389,7 @@ class LoginWindow(tk.Toplevel):
 
         self.frame = tk.Frame(
             self,
-            bg='grey',
+            bg=MID_GREY,
             width=self.window_width,
             height=self.window_height,
             highlightthickness=0,
@@ -407,21 +404,31 @@ class LoginWindow(tk.Toplevel):
         self.frame.columnconfigure(0, weight=1)
         self.frame.rowconfigure(0, weight=1)
 
-        self.username_label = tk.Label(self.frame, text='Username')
+        self.username_label = tk.Label(
+            self.frame,
+            bg=MID_GREY,
+            font=('Arial', 10),
+            text='Username'
+        )
         self.username_label.grid(row=0, column=1, columnspan=3, sticky='ew')
 
         self.username_entry = tk.Entry(self.frame, borderwidth=3)
         self.username_entry.grid(row=1, column=0, columnspan=5, sticky='ew')
         self.username_entry.bind('<Return>', self.main_login)
 
-        self.password_label = tk.Label(self.frame, text='Password')
+        self.password_label = tk.Label(
+            self.frame,
+            bg=MID_GREY,
+            font=('Arial', 10),
+            text='Password'
+        )
         self.password_label.grid(row=2, column=1, columnspan=3, sticky='ew')
 
         self.password_entry = tk.Entry(self.frame, borderwidth=3, show='*')
         self.password_entry.grid(row=3, column=0, columnspan=5, sticky='ew')
         self.password_entry.bind('<Return>', self.main_login)
 
-        self.two_fa_label = tk.Label(self.frame, text='2FA')
+        self.two_fa_label = tk.Label(self.frame, bg=MID_GREY, text='2FA')
         self.two_fa_entry = tk.Entry(self.frame)
         self.two_fa_entry.bind('<Return>', self.two_fa_login)
 
@@ -436,8 +443,6 @@ class LoginWindow(tk.Toplevel):
         )
         self.confirm_button.bind('<ButtonRelease-1>', self.main_login)
         self.confirm_button.grid(row=4, column=2, sticky='ew')
-
-        self.logging_in_label = tk.Label(self.frame, text='Logging in...')
 
         # Using this in a @property results in a RecursionError for some reason
         # So we do it here but in ugly :(
@@ -458,15 +463,6 @@ class LoginWindow(tk.Toplevel):
         self.two_fa_label.grid(row=1, column=1, columnspan=3, sticky='ew')
         self.two_fa_entry.grid(row=2, column=0, columnspan=5, sticky='ew')
         self.confirm_button.grid(row=3, column=2, sticky='ew')
-
-    def show_logging_in(self):
-        """
-        Display "Logging in..." text via a label.
-        """
-        for widget in self.widgets:
-            widget.grid_forget()
-
-        self.logging_in_label.grid(row=3, column=0, columnspan=5, sticky='ew')
 
     def get_login(self):
         """
