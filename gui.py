@@ -489,13 +489,20 @@ class LoginWindow(tk.Toplevel):
         if not self.username or not self.password:
             return
 
-        two_fa_needed = self.driver.main_login(self.username, self.password)
-        if two_fa_needed is False:
-            self.driver.is_logged_in = True
-            self.destroy()
+        credentials_valid, two_fa_needed = self.driver.main_login(self.username, self.password)
+
+        if credentials_valid is False:
+            self.username_label.configure(fg='red')
+            self.password_label.configure(fg='red')
             return
 
-        self.show_two_fa()
+        if two_fa_needed is True:
+            self.show_two_fa()
+            return
+
+        # 2FA not needed, login successful
+        self.driver.is_logged_in = True
+        self.destroy()
 
     def two_fa_login(self, _):
         """
@@ -505,9 +512,18 @@ class LoginWindow(tk.Toplevel):
         if not self.two_fa:
             return
 
-        self.driver.two_fa_login(self.two_fa)
-        self.driver.is_logged_in = True
-        self.destroy()
+        login_complete = self.driver.two_fa_login(self.two_fa)
+        if login_complete is True:
+            self.driver.is_logged_in = True
+            self.destroy()
+            return
+
+        # Pressing the button to resend the 2FA code is unreliable
+        # So we log in again using the already acquired credentials
+        # To get another 2FA code sent to us
+        self.two_fa_label.configure(fg='red')
+        self.driver.main_login(self.username, self.password)
+
 
 class ScrollText(tk.Text):
     """

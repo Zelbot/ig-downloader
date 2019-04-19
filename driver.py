@@ -45,9 +45,10 @@ class Driver:
         """
         Log in to Instagram (to gain access to private profiles).
         """
-        # TODO: Robust checks for wrong login info and retrying. I'll be too lazy to do this though.
         # Main login prompt
         login_url = 'https://www.instagram.com/accounts/login/'
+        two_fa_url = 'https://www.instagram.com/accounts/login/two_factor'
+
         self.webdriver.get(login_url)
         self.log_text.newline('Got to IG login URL')
         time.sleep(0.5)
@@ -68,18 +69,28 @@ class Driver:
         self.log_text.newline('Waiting a little longer here...')
         time.sleep(2.5)
 
-        # 2FA
-        if 'two_factor' not in self.webdriver.current_url:
-            self.log_text.newline('No 2FA enabled for this account, so we are logged in already')
-            return False
+        # Login not successful, credentials are invalid
+        if self.webdriver.current_url == login_url:
+            self.log_text.newline('Login credentials invalid')
+            credentials_valid, two_fa_needed = (False, None)
+            return credentials_valid, two_fa_needed
 
-        self.log_text.newline('2FA enabled, continuing with logging in')
-        return True
+        # Login successful, but 2FA needed
+        if self.webdriver.current_url == two_fa_url:
+            self.log_text.newline('Login credentials valid but 2FA is enabled')
+            credentials_valid, two_fa_needed = (True, True)
+            return credentials_valid, two_fa_needed
+
+        # Login successful, got to main page
+        credentials_valid, two_fa_needed = (True, False)
+        return credentials_valid, two_fa_needed
 
     def two_fa_login(self, two_fa):
         """
         Complete the 2FA step of logging in to Instagram.
         """
+        two_fa_url = 'https://www.instagram.com/accounts/login/two_factor'
+
         iframes = self.webdriver.find_elements_by_css_selector('iframe')
         if iframes:
             self.webdriver.switch_to.frame(iframes[0])
@@ -93,5 +104,11 @@ class Driver:
         self.log_text.newline('Entered 2FA verification code')
         self.log_text.newline('Waiting a little longer here...')
         time.sleep(2.5)
-        self.log_text.newline('Login complete')
-        self.log_text.newline('.')
+
+        login_complete = self.webdriver.current_url != two_fa_url
+        if login_complete is True:
+            self.log_text.newline('Login complete')
+            self.log_text.newline('.')
+        else:
+            self.log_text.newline('2FA code is invalid')
+        return login_complete
