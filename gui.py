@@ -553,18 +553,6 @@ class ScrollText(tk.Text):
         self.delete(1.0, tk.END)
         self.configure(state='disabled')
 
-    def delete_first_line(self):
-        """
-        Delete the first line of the text held in this widget.
-        """
-        content = self.get(1.0, tk.END)
-        lines = content.strip().splitlines()[1:]
-
-        self.configure(state='normal')
-        self.delete(1.0, tk.END)
-        self.newline('\n'.join(lines))
-        self.configure(state='disabled')
-
     def display_these_lines(self, lines):
         """
         Clear all text and display the given lines.
