@@ -26,11 +26,12 @@ class Application:
     border_color = 'black'
 
     __slots__ = (
-        'root', 'scraper', 'driver', 'login',
+        'root',
         'left_frame', 'url_label', 'url_entry', 'check_button', 'url_check_label', 'start_dl_button',
         'mid_frame', 'url_tracking_label', 'url_tracking_text',
         'right_frame', 'log_text',
         'bottom_frame', 'download_tracking_label', 'download_tracking_bar',
+        'scraper', 'driver', 'login', 'extraction_methods'
     )
 
     def __init__(self, root):
@@ -63,6 +64,7 @@ class Application:
         self.driver = Driver(self.log_text)
         self.driver.start_driver()  # Start webdriver to be used for scraping
         self.login = None
+        self.extraction_methods = {}
 
     def setup_left_frame(self):
         """
@@ -239,78 +241,53 @@ class Application:
 
         # Make sure only posts are specified, not user's pages
         ig_url_re = re.compile(r'^https://www\.instagram\.com/p/.+/')
-        url_re = re.compile(r'^https?://.+\..+\..+\.(jpg|png|gif)')
-        imgur_re = re.compile(r'^https://imgur\.com/(.+)')
+        general_img_re = re.compile(r'^https?://.+\..+\..+\.(?:jpg|png|gif)')
+        imgur_re = re.compile(r'^https://imgur\.com/(?:.)+$(?<!(png|gif|jpg))')
 
-        # Convert https://imgur.com URLs so we don't have to manually do that
-        # Like seriously, this whole project was created so we can be as lazy as possible
-        if imgur_re.match(text):
-            file_name = imgur_re.match(text).group(1)
-            text = f'https://i.imgur.com/{file_name}.png'
+        youtube_re = re.compile('https://(?:www\.)?youtube\.com/watch\?v=.+')
+        yt_re = re.compile(r'https://youtu\.be/.+')
 
-        if 'www.instagram.com' in text and not ig_url_re.match(text):
+        # Map URLs to the methods needed to extract the images in them
+        # All of these methods take a single argument, the URL/text
+        exprs = {
+            ig_url_re: self.process_ig_url,
+            general_img_re: self.process_general_url,
+            imgur_re: self.process_imgur_url,
+            youtube_re: self.process_yt_url,
+            yt_re: self.process_yt_url,
+        }
+
+        if not any(regex.match(text) for regex in exprs.keys()):
             self.url_check_label.configure(text='ERR: URL not accepted', fg='red')
             return
-        elif 'www.instagram.com' not in text and not url_re.match(text):
-            self.url_check_label.configure(text='ERR: URL not accepted', fg='red')
-            return
 
-        if text in self.scraper.image_links or text in self.scraper.instagram_links:
+        if text in self.scraper.image_links or text in self.scraper.display_links:
             self.url_check_label.configure(text='WARN: URL already added.', fg='brown')
             return
 
         # In case a URL gets ctrl+v'd into the entry multiple times
-        if any(link in text for link in self.scraper.image_links + self.scraper.instagram_links):
+        if any(link in text for link in self.scraper.image_links + self.scraper.display_links):
             self.url_check_label.configure(text='WARN: URL already added.', fg='brown')
             return
 
         self.url_check_label.configure(text='OK: URL accepted', fg='black')
-        self.process_url(text)
+        self.process_url(exprs, text)
 
         entry.delete(0, tk.END)
 
-    def process_url(self, url):
+    def process_url(self, exprs, url):
         """
         Differentiate between links to images and links to Instagram posts.
         Extract images from Instagram posts if needed.
         """
-        if url.endswith(('.jpg', '.png', '.gif')):
-            self.scraper.download_links.append(url)
-            self.scraper.image_links.append(url)
-            self.scraper.display_links.append(url)
-            self.log_text.newline('Added singular image:')
-            self.log_text.newline(f' -  {url}')
+        for regex in exprs.keys():
+            # Guaranteed to happen for at least one regex
+            if regex.match(url):
+                extraction_method = exprs[regex]
+                extraction_method(url)
+                break
 
-        # Instagram post
-        else:
-            self.driver.webdriver.get(url)
-            self.log_text.newline('Got URL')
-            soup = BeautifulSoup(self.driver.webdriver.page_source, features='html.parser')
-            data = self.scraper.get_data(soup)
-            self.log_text.newline('Extracted JSON data')
-
-            if self.scraper.is_private(data) and self.driver.is_logged_in is False:
-                def show_root(_):
-                    """
-                    Needed for the pos arg getting passed with tkinter bindings.
-                    """
-                    self.root.deiconify()
-                    self.process_url(url)
-                    # Not unbinding here would lead to an infinite loop
-                    # of calling the above function again and again
-                    self.login.unbind('<Destroy>')
-
-                self.log_text.newline('Login initiated')
-                self.create_login_window()
-                self.root.withdraw()
-                self.login.bind('<Destroy>', show_root)
-                return
-
-            # Logging for IG links is done inside of this function already
-            self.scraper.extract_images(data)
-            self.scraper.instagram_links.append(url)
-            self.scraper.display_links.append(url)
-
+        self.scraper.display_links.append(url)
         self.url_tracking_text.display_these_lines(self.scraper.display_links)
         self.download_tracking_label.configure(
             text=f'Downloaded 0 / {len(self.scraper.download_links)} files'
@@ -318,6 +295,64 @@ class Application:
 
         self.log_text.newline('URL processing complete')
         self.log_text.newline('.')
+
+    def process_general_url(self, url):
+        """
+        Append a link directly pointing to an image to the lists
+        as no further actions are needed.
+        """
+        self.scraper.download_links.append(url)
+        self.scraper.image_links.append(url)
+        self.log_text.newline('Added singular image:')
+        self.log_text.newline(f' -  {url}')
+
+    def process_ig_url(self, url):
+        """
+        Prepare data and handle extraction of images of Instagram posts.
+        """
+        self.driver.webdriver.get(url)
+        self.log_text.newline('Got URL')
+        soup = BeautifulSoup(self.driver.webdriver.page_source, features='html.parser')
+        data = self.scraper.get_data(soup)
+        self.log_text.newline('Extracted JSON data')
+
+        if self.scraper.is_private(data) and self.driver.is_logged_in is False:
+            def show_root(_):
+                """
+                Needed for the pos arg getting passed with tkinter bindings.
+                """
+                self.root.deiconify()
+                # self.process_url(url)
+                self.process_ig_url(url)
+                # Not unbinding here would lead to an infinite loop
+                # of calling the above function again and again
+                self.login.unbind('<Destroy>')
+
+            self.log_text.newline('Login initiated')
+            self.create_login_window()
+            self.root.withdraw()
+            self.login.bind('<Destroy>', show_root)
+            return
+
+        # Logging for IG links is done inside of this function already
+        self.scraper.extract_ig_images(data)
+        self.scraper.image_links.append(url)
+
+    def process_imgur_url(self, url):
+        """
+        Prepare data needed for extracting images from an Imgur link
+        and then actually extract them.
+        """
+        self.driver.webdriver.get(url)
+        self.log_text.newline('Got URL')
+        soup = BeautifulSoup(self.driver.webdriver.page_source, features='html.parser')
+        self.scraper.extract_imgur_images(soup)
+
+    def process_yt_url(self, url):
+        """
+        Simply call the scraper's method to keep the method class uniform here.
+        """
+        self.scraper.extract_yt_images(url)
 
     def download_files(self, _):
         """

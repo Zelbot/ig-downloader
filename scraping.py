@@ -1,19 +1,18 @@
 # BUILTIN
 import json
 import os
+import random
 import re
+import string
 # PIP
 import requests
-# from bs4 import BeautifulSoup
-# CUSTOM
-# import config
 
 
 class Scraper:
 
     __slots__ = (
         'log_text',
-        'download_links', 'display_links', 'instagram_links', 'image_links',
+        'download_links', 'display_links', 'image_links',
         )
 
     def __init__(self, log_text):
@@ -21,7 +20,6 @@ class Scraper:
 
         self.display_links = []  # Links to be displayed in the GUI (gets reset after dl loop)
         self.download_links = []  # DOES get reset after a download loop
-        self.instagram_links = []  # Does NOT get reset after a download loop
         self.image_links = []  # Does NOT get reset after a download loop
 
     def is_private(self, data):
@@ -66,7 +64,7 @@ class Scraper:
 
         return user
 
-    def extract_images(self, data):
+    def extract_ig_images(self, data):
         """
         Extract all image URLs from the HTML source code of an Instagram post.
         (Also extracts video URLs (got added later on))
@@ -86,11 +84,11 @@ class Scraper:
 
             for index, edge in enumerate(edges):
                 self.append_link(edge['node']['display_url'],
-                                 type_='image', index=index, edges=edges)
+                                 type_='image', index=index, list_=edges)
 
                 if 'video_url' in edge['node'].keys():
                     self.append_link(edge['node']['video'],
-                                     type_='image', index=index, edges=edges)
+                                     type_='video', index=index, list_=edges)
 
         # Single image/video
         else:
@@ -99,15 +97,64 @@ class Scraper:
             if 'video_url' in shortcode_media.keys():
                 self.append_link(shortcode_media['video_url'], type_='video')
 
-    def append_link(self, link, type_='image', index=None, edges=None):
+    def extract_imgur_images(self, soup):
+        """
+        Extract all images from an imgur post.
+        JSON data handling taken from here:
+        https://old.reddit.com/r/learnpython/comments/93yiti/
+        scraping_images_from_imgur_using_selenium_and/e3h19xl/
+        """
+        # The split has multiple spaces after 'image'
+        # to avoid errors due to "image " being in the title/description
+        # Multiple spaces will get escaped in the html source code, like so:
+        # "title":"image image\u00a0 \u00a0 \u00a0image"
+        try:
+            script = soup.find_all('script')[13]
+            text = script.get_text()
+            data_str = text.split('image   ')[1].strip(' :').split('group')[0].strip(' \n,')
+        # Sometimes the index for the script is different, not sure why though :(
+        except IndexError:
+            script = soup.find_all('script')[29]
+            text = script.get_text()
+            data_str = text.split('image   ')[1].strip(' :').split('group')[0].strip(' \n,')
+        data = json.loads(data_str)
+
+        # Log the script tag's index for debugging purposes
+        script_tags = soup.find_all('script')
+        self.log_text.newline('Script tag of Imgur post containing JSON data'
+                              f' is at index {script_tags.index(script)} / {len(script_tags)}')
+
+        if 'album_images' in data.keys():
+            urls = [f'https://i.imgur.com/{image["hash"]}{image["ext"]}'
+                    for image in data['album_images']['images']]
+            for index, url in enumerate(urls):
+                self.append_link(url, type_='image', index=index, list_=urls)
+        else:
+            url = f'https://i.imgur.com/{data["hash"]}{data["ext"]}'
+            self.append_link(url)
+
+    def extract_yt_images(self, url):
+        """
+        Construct a link for the maxresdefault thumbnail of a YouTube video.
+        """
+        # Second splits to get rid of additional arguments in the URL
+        if 'watch?v=' in url:
+            video_id = url.split('watch?v=')[1].split('?')[0]
+        else:
+            video_id = url.split('/')[-1].split('?')[0]
+
+        thumbnail_url = f'https://img.youtube.com/vi/{video_id}/maxresdefault.jpg'
+        self.append_link(thumbnail_url)
+
+    def append_link(self, link, type_='image', index=None, list_=None):
         """
         Append a link to the link lists and log info.
         """
         self.download_links.append(link)
         self.image_links.append(self.download_links[-1])
 
-        if index is not None and edges is not None:
-            self.log_text.newline(f'Added {type_} of post #{index+1} / {len(edges)}:')
+        if index is not None and list_ is not None:
+            self.log_text.newline(f'Added {type_} of post #{index+1} / {len(list_)}:')
         else:
             self.log_text.newline(f'Added singular {type_}:')
         self.log_text.newline(f' -  {self.download_links[-1]}\n')
@@ -130,6 +177,11 @@ class Scraper:
             file_name = link.split('/')[-1]
             # Extra check needed for IG file names
             file_name = file_name_re.match(file_name).group(0)
+            if file_name == 'maxresdefault.jpg':
+                # Need to avoid same file names for YouTube thumbnails
+                rnd_str = ''.join([random.choice(string.ascii_letters + string.digits)
+                                   for _ in range(10)])
+                file_name = f'maxresdefault_{rnd_str}.jpg'
             file_dst = os.path.join(os.getcwd(), dl_folder, file_name)
 
             if os.path.exists(file_dst):

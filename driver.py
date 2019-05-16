@@ -67,7 +67,7 @@ class Driver:
 
         self.log_text.newline('Entered login credentials and confirmed entries')
         self.log_text.newline('Waiting a little longer here...')
-        time.sleep(2.5)
+        time.sleep(3)
 
         # Login not successful, credentials are invalid
         if self.webdriver.current_url == login_url:
@@ -103,7 +103,7 @@ class Driver:
 
         self.log_text.newline('Entered 2FA verification code')
         self.log_text.newline('Waiting a little longer here...')
-        time.sleep(2.5)
+        time.sleep(5)
 
         login_complete = self.webdriver.current_url != two_fa_url
         if login_complete is True:
