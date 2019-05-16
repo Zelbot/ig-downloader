@@ -6,7 +6,7 @@ from gui import Application
 
 def main():
     """
-    Instance the GUI class and start the main loop.
+    Instantiate the GUI class and start the main loop.
     """
     # Scraper and Driver are initialized inside of Application's __init__
     root = tk.Tk()
