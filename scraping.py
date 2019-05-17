@@ -4,6 +4,7 @@ import os
 import random
 import re
 import string
+import time
 # PIP
 import requests
 
@@ -13,6 +14,7 @@ class Scraper:
     __slots__ = (
         'log_text',
         'download_links', 'display_links', 'image_links',
+        'last_download'
         )
 
     def __init__(self, log_text):
@@ -21,6 +23,8 @@ class Scraper:
         self.display_links = []  # Links to be displayed in the GUI (gets reset after dl loop)
         self.download_links = []  # DOES get reset after a download loop
         self.image_links = []  # Does NOT get reset after a download loop
+
+        self.last_download = ''  # Track the last downloaded URL to update widgets
 
     def is_private(self, data):
         """
@@ -159,16 +163,15 @@ class Scraper:
             self.log_text.newline(f'Added singular {type_}:')
         self.log_text.newline(f' -  {self.download_links[-1]}\n')
 
-    def download_files(self, dl_bar=None):
+    def download_files(self):
         """
         Download all the collected files.
         """
+        if not self.download_links:
+            return
+
         file_name_re = re.compile(r'.+.(?:jpg|png|gif|mp4)')
         dl_folder = 'downloads'
-
-        if dl_bar is not None:
-            dl_bar['maximum'] = len(self.download_links)
-            dl_bar['value'] = 0
 
         if not os.path.exists(dl_folder) or not os.path.isdir(dl_folder):
             os.mkdir(dl_folder)
@@ -177,8 +180,9 @@ class Scraper:
             file_name = link.split('/')[-1]
             # Extra check needed for IG file names
             file_name = file_name_re.match(file_name).group(0)
+
+            # Need to avoid same file names for YouTube thumbnails
             if file_name == 'maxresdefault.jpg':
-                # Need to avoid same file names for YouTube thumbnails
                 rnd_str = ''.join([random.choice(string.ascii_letters + string.digits)
                                    for _ in range(10)])
                 file_name = f'maxresdefault_{rnd_str}.jpg'
@@ -195,5 +199,5 @@ class Scraper:
                     self.log_text.newline(f'Downloaded file {index+1}'
                                           f' / {len(self.download_links)}')
 
-            if dl_bar is not None:
-                dl_bar['value'] += 1
+            self.last_download = link
+            time.sleep(0.5)

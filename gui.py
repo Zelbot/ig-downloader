@@ -1,6 +1,7 @@
 # BUILTIN
 import inspect
 import re
+import threading
 import tkinter as tk
 from tkinter import ttk
 # PIP
@@ -126,7 +127,8 @@ class Application:
             font=('Arial', 12),
             cursor='hand2'
         )
-        self.start_dl_button.bind('<ButtonRelease-1>', self.download_files)
+        self.start_dl_button.bind('<ButtonRelease-1>',
+                                  lambda e: threading.Thread(target=self.download_files).start())
         self.start_dl_button.place(relx=0.5, rely=0.7, anchor='center')
 
     def setup_mid_frame(self):
@@ -354,28 +356,54 @@ class Application:
         """
         self.scraper.extract_yt_images(url)
 
-    def download_files(self, _):
+    def download_files(self):
         """
         Wrapper to call the scraper's download method,
         to avoid arg weirdness with tkinter widget bindings.
-        Also reset the tracking attributes.
         """
         if not self.scraper.download_links:
             return
 
-        self.scraper.download_files(dl_bar=self.download_tracking_bar)
-        self.log_text.newline('Downloading finished')
+        # Disable some widgets to not mess with running downloads
+        self.url_entry.configure(state='disabled')
+        self.check_button.configure(state='disabled')
+        self.start_dl_button.configure(state='disabled')
+
+        threading.Thread(target=self.scraper.download_files).start()
+        # Intentionally block here to re-enable widgets only after this returns
+        self.update_widgets()
+
+        self.url_entry.configure(state='normal')
+        self.check_button.configure(state='normal')
+        self.start_dl_button.configure(state='normal')
+
+    def update_widgets(self):
+        """
+        Update the download tracking widgets while downloading
+        and reset them when the downloads are finished.
+        """
+        self.download_tracking_bar['maximum'] = len(self.scraper.download_links)
+        last_download = self.scraper.last_download
+        finished_dls = 0
+
+        while finished_dls < len(self.scraper.download_links):
+            if self.scraper.last_download != last_download:
+                last_download = self.scraper.last_download
+                finished_dls += 1
+
+                self.download_tracking_bar['value'] += 1
+                self.download_tracking_label.configure(
+                    text=f'Downloaded {finished_dls}'
+                         f' / {len(self.scraper.download_links)} files'
+                )
 
         self.scraper.download_links = []
         self.scraper.display_links = []
-
-        self.download_tracking_bar['maximum'] = 0
         self.download_tracking_bar['value'] = 0
 
         self.download_tracking_label.configure(
             text='Downloaded 0 / 0 files'
         )
-
         self.url_tracking_text.clear_text()
 
         self.log_text.newline('Reset tracking widgets')
