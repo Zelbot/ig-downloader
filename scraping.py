@@ -137,7 +137,7 @@ class Scraper:
             url = f'https://i.imgur.com/{data["hash"]}{data["ext"]}'
             self.append_link(url)
 
-    def extract_yt_images(self, url):
+    def extract_yt_thumbnail(self, url):
         """
         Construct a link for the maxresdefault thumbnail of a YouTube video.
         """
@@ -148,6 +148,7 @@ class Scraper:
             video_id = url.split('/')[-1].split('?')[0]
 
         thumbnail_url = f'https://img.youtube.com/vi/{video_id}/maxresdefault.jpg'
+        # thumbnail_url = f'https://img.youtube.com/vi/{video_id}/0.jpg'
         self.append_link(thumbnail_url)
 
     def append_link(self, link, type_='image', index=None, list_=None):

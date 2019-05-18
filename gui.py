@@ -354,7 +354,7 @@ class Application:
         """
         Simply call the scraper's method to keep the method class uniform here.
         """
-        self.scraper.extract_yt_images(url)
+        self.scraper.extract_yt_thumbnail(url)
 
     def download_files(self):
         """
