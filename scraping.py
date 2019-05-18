@@ -26,17 +26,64 @@ class Scraper:
 
         self.last_download = ''  # Track the last downloaded URL to update widgets
 
+    @staticmethod
+    def get_random_string(amount=10):
+        """
+        Generate a random string.
+        Used to avoid same file names when downloading.
+        """
+        return ''.join([random.choice(string.ascii_letters + string.digits)
+                        for _ in range(amount)])
+
+    def append_link(self, link, type_='image', index=None, list_=None):
+        """
+        Append a link to the link lists and log info.
+        """
+        self.download_links.append(link)
+        self.image_links.append(self.download_links[-1])
+
+        if index is not None and list_ is not None:
+            self.log_text.newline(f'Added {type_} of post #{index+1} / {len(list_)}:')
+        else:
+            self.log_text.newline(f'Added singular {type_}:')
+        self.log_text.newline(f' -  {self.download_links[-1]}\n')
+
+    def get_imgur_data(self, soup):
+        """
+        Extract the JSON data from an Imgur post's HTML source code.
+        """
+        # The split has multiple spaces after 'image'
+        # to avoid errors due to "image " being in the title/description
+        # Multiple spaces will get escaped in the html source code, like so:
+        # "title":"image image\u00a0 \u00a0 \u00a0image"
+        try:
+            script = soup.find_all('script')[13]
+            text = script.get_text()
+            data_str = text.split('image   ')[1].strip(' :').split('group')[0].strip(' \n,')
+        # Sometimes the index for the script is different, not sure why though :(
+        except IndexError:
+            script = soup.find_all('script')[29]
+            text = script.get_text()
+            data_str = text.split('image   ')[1].strip(' :').split('group')[0].strip(' \n,')
+
+        # Log the script tag's index for debugging purposes
+        script_tags = soup.find_all('script')
+        self.log_text.newline('Script tag of Imgur post containing JSON data'
+                              f' is at index {script_tags.index(script)} / {len(script_tags)}')
+
+        return json.loads(data_str)
+
     def is_private(self, data):
         """
         Check a soup of an Instagram page to see if the page is private.
         We need to account for scraping a profile as a user gets redirected to a profile
         if they try to access a private post which they are not verified for.
         """
-        user = self.get_user(data)
+        user = self.get_ig_user(data)
         return user['is_private']
 
     @staticmethod
-    def get_data(soup):
+    def get_ig_data(soup):
         """
         Extract the JSON data from an Instagram page's HTML source code.
         """
@@ -55,7 +102,7 @@ class Scraper:
         return data
 
     @staticmethod
-    def get_user(data):
+    def get_ig_user(data):
         """
         Get the user dict from JSON data.
         """
@@ -75,7 +122,7 @@ class Scraper:
         """
         # Private page which is not being followed
         if 'PostPage' not in data['entry_data'].keys():
-            user = self.get_user(data)
+            user = self.get_ig_user(data)
             self.log_text.newline(f'Cannot access profile of {user["username"]} - Skipping!')
             return
 
@@ -108,25 +155,7 @@ class Scraper:
         https://old.reddit.com/r/learnpython/comments/93yiti/
         scraping_images_from_imgur_using_selenium_and/e3h19xl/
         """
-        # The split has multiple spaces after 'image'
-        # to avoid errors due to "image " being in the title/description
-        # Multiple spaces will get escaped in the html source code, like so:
-        # "title":"image image\u00a0 \u00a0 \u00a0image"
-        try:
-            script = soup.find_all('script')[13]
-            text = script.get_text()
-            data_str = text.split('image   ')[1].strip(' :').split('group')[0].strip(' \n,')
-        # Sometimes the index for the script is different, not sure why though :(
-        except IndexError:
-            script = soup.find_all('script')[29]
-            text = script.get_text()
-            data_str = text.split('image   ')[1].strip(' :').split('group')[0].strip(' \n,')
-        data = json.loads(data_str)
-
-        # Log the script tag's index for debugging purposes
-        script_tags = soup.find_all('script')
-        self.log_text.newline('Script tag of Imgur post containing JSON data'
-                              f' is at index {script_tags.index(script)} / {len(script_tags)}')
+        data = self.get_imgur_data(soup)
 
         if 'album_images' in data.keys():
             urls = [f'https://i.imgur.com/{image["hash"]}{image["ext"]}'
@@ -151,18 +180,18 @@ class Scraper:
         # thumbnail_url = f'https://img.youtube.com/vi/{video_id}/0.jpg'
         self.append_link(thumbnail_url)
 
-    def append_link(self, link, type_='image', index=None, list_=None):
+    def extract_reddit_video(self, data):
         """
-        Append a link to the link lists and log info.
+        Extract the video of a v.redd.it upload.
+        JSON data is acquired by appending '.json' to the end of a Reddit URL.
         """
-        self.download_links.append(link)
-        self.image_links.append(self.download_links[-1])
-
-        if index is not None and list_ is not None:
-            self.log_text.newline(f'Added {type_} of post #{index+1} / {len(list_)}:')
-        else:
-            self.log_text.newline(f'Added singular {type_}:')
-        self.log_text.newline(f' -  {self.download_links[-1]}\n')
+        try:
+            media = data[0]['data']['children'][0]['data']['media']
+            video_url = media['reddit_video']['fallback_url']
+            self.append_link(video_url, type_='video')
+        # media is None
+        except TypeError:
+            self.log_text.newline('Not a v.redd.it video - Skipping!')
 
     def download_files(self):
         """
@@ -171,24 +200,30 @@ class Scraper:
         if not self.download_links:
             return
 
-        file_name_re = re.compile(r'.+.(?:jpg|png|gif|mp4)')
-        dl_folder = 'downloads'
+        ig_name_re = re.compile(r'.+\.(?:jpg|png|gif|mp4)')
 
+        dl_folder = 'downloads'
         if not os.path.exists(dl_folder) or not os.path.isdir(dl_folder):
             os.mkdir(dl_folder)
 
         for index, link in enumerate(self.download_links):
             file_name = link.split('/')[-1]
-            # Extra check needed for IG file names
-            file_name = file_name_re.match(file_name).group(0)
+
+            # Strip ?-arguments from IG file names
+            if ig_name_re.match(file_name):
+                file_name = ig_name_re.match(file_name).group(0)
 
             # Need to avoid same file names for YouTube thumbnails
             if file_name == 'maxresdefault.jpg':
-                rnd_str = ''.join([random.choice(string.ascii_letters + string.digits)
-                                   for _ in range(10)])
+                rnd_str = self.get_random_string()
                 file_name = f'maxresdefault_{rnd_str}.jpg'
-            file_dst = os.path.join(os.getcwd(), dl_folder, file_name)
 
+            # Reddit videos contain this argument but no file extension
+            if file_name.endswith('?source=fallback'):
+                rnd_str = self.get_random_string()
+                file_name = file_name.replace('?source=fallback', f'{rnd_str}.mp4')
+
+            file_dst = os.path.join(os.getcwd(), dl_folder, file_name)
             if os.path.exists(file_dst):
                 self.log_text.newline(f'File {index+1} / {len(self.download_links)}'
                                       ' already present, skipping')

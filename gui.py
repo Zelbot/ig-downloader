@@ -1,5 +1,6 @@
 # BUILTIN
 import inspect
+import json
 import re
 import threading
 import tkinter as tk
@@ -245,9 +246,9 @@ class Application:
         ig_url_re = re.compile(r'^https://www\.instagram\.com/p/.+/')
         general_img_re = re.compile(r'^https?://.+\..+\..+\.(?:jpg|png|gif)')
         imgur_re = re.compile(r'^https://imgur\.com/(?:.)+$(?<!(png|gif|jpg))')
-
         youtube_re = re.compile('https://(?:www\.)?youtube\.com/watch\?v=.+')
         yt_re = re.compile(r'https://youtu\.be/.+')
+        reddit_re = re.compile(r'https?://(?:www|old)\.reddit\.com/r/.+')
 
         # Map URLs to the methods needed to extract the images in them
         # All of these methods take a single argument, the URL/text
@@ -257,7 +258,12 @@ class Application:
             imgur_re: self.process_imgur_url,
             youtube_re: self.process_yt_url,
             yt_re: self.process_yt_url,
+            reddit_re: self.process_reddit_url,
         }
+
+        # We only need want to track Reddit URLs in JSON format
+        if reddit_re.match(text) and not text.endswith('.json'):
+            text += '.json'
 
         if not any(regex.match(text) for regex in exprs.keys()):
             self.url_check_label.configure(text='ERR: URL not accepted', fg='red')
@@ -315,7 +321,7 @@ class Application:
         self.driver.webdriver.get(url)
         self.log_text.newline('Got URL')
         soup = BeautifulSoup(self.driver.webdriver.page_source, features='html.parser')
-        data = self.scraper.get_data(soup)
+        data = self.scraper.get_ig_data(soup)
         self.log_text.newline('Extracted JSON data')
 
         if self.scraper.is_private(data) and self.driver.is_logged_in is False:
@@ -355,6 +361,17 @@ class Application:
         Simply call the scraper's method to keep the method class uniform here.
         """
         self.scraper.extract_yt_thumbnail(url)
+
+    def process_reddit_url(self, url):
+        """
+        Get the JSON data of a Reddit post and extract the video link.
+        NOTE: Video and audio are separated on Reddit, so the audio will be missing.
+        """
+        self.driver.webdriver.get(url)
+        soup = BeautifulSoup(self.driver.webdriver.page_source, features='html.parser')
+        data_str = soup.find_all('pre')[0].text
+        data = json.loads(data_str)
+        self.scraper.extract_reddit_video(data)
 
     def download_files(self):
         """
