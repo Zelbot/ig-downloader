@@ -200,30 +200,14 @@ class Scraper:
         if not self.download_links:
             return
 
-        ig_name_re = re.compile(r'.+\.(?:jpg|png|gif|mp4)')
-
         dl_folder = 'downloads'
         if not os.path.exists(dl_folder) or not os.path.isdir(dl_folder):
             os.mkdir(dl_folder)
 
         for index, link in enumerate(self.download_links):
-            file_name = link.split('/')[-1]
-
-            # Strip ?-arguments from IG file names
-            if ig_name_re.match(file_name):
-                file_name = ig_name_re.match(file_name).group(0)
-
-            # Need to avoid same file names for YouTube thumbnails
-            if file_name == 'maxresdefault.jpg':
-                rnd_str = self.get_random_string()
-                file_name = f'maxresdefault_{rnd_str}.jpg'
-
-            # Reddit videos contain this argument but no file extension
-            if file_name.endswith('?source=fallback'):
-                rnd_str = self.get_random_string()
-                file_name = file_name.replace('?source=fallback', f'{rnd_str}.mp4')
-
+            file_name = self.prep_filename(link)
             file_dst = os.path.join(os.getcwd(), dl_folder, file_name)
+
             if os.path.exists(file_dst):
                 self.log_text.newline(f'File {index+1} / {len(self.download_links)}'
                                       ' already present, skipping')
@@ -237,3 +221,27 @@ class Scraper:
 
             self.last_download = link
             time.sleep(0.5)
+
+    def prep_filename(self, link):
+        """
+        Prepare the name of the file to download
+        by using the link/URL.
+        """
+        ig_name_re = re.compile(r'.+\.(?:jpg|png|gif|mp4)')
+        file_name = link.split('/')[-1]
+
+        # Strip ?-arguments from IG file names
+        if ig_name_re.match(file_name):
+            file_name = ig_name_re.match(file_name).group(0)
+
+        # Need to avoid same file names for YouTube thumbnails
+        elif file_name == 'maxresdefault.jpg':
+            rnd_str = self.get_random_string()
+            file_name = f'maxresdefault_{rnd_str}.jpg'
+
+        # Reddit videos contain this argument but no file extension
+        elif file_name.endswith('?source=fallback'):
+            rnd_str = self.get_random_string()
+            file_name = file_name.replace('?source=fallback', f'{rnd_str}.mp4')
+
+        return file_name
