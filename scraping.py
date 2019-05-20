@@ -35,7 +35,7 @@ class Scraper:
 
     __slots__ = (
         'log_text',
-        'download_links', 'display_links', 'image_links',
+        'download_links', 'display_links', 'tracking_links',
         'last_download'
         )
 
@@ -44,7 +44,7 @@ class Scraper:
 
         self.display_links = []  # Links to be displayed in the GUI (gets reset after dl loop)
         self.download_links = []  # DOES get reset after a download loop
-        self.image_links = []  # Does NOT get reset after a download loop
+        self.tracking_links = []  # Does NOT get reset after a download loop
 
         self.last_download = ''  # Track the last downloaded URL to update widgets
 
@@ -62,7 +62,7 @@ class Scraper:
         Append a link to the link lists and log info.
         """
         self.download_links.append(link)
-        self.image_links.append(self.download_links[-1])
+        self.tracking_links.append(self.download_links[-1])
 
         if index is not None and list_ is not None:
             self.log_text.newline(f'Added {type_} of post #{index+1} / {len(list_)}:')

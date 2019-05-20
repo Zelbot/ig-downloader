@@ -272,12 +272,12 @@ class Application:
             self.url_check_label.configure(text='ERR: URL not accepted', fg='red')
             return
 
-        if text in self.scraper.image_links or text in self.scraper.display_links:
+        if text in self.scraper.tracking_links + self.scraper.display_links:
             self.url_check_label.configure(text='WARN: URL already added.', fg='brown')
             return
 
         # In case a URL gets ctrl+v'd into the entry multiple times
-        if any(link in text for link in self.scraper.image_links + self.scraper.display_links):
+        if any(link in text for link in self.scraper.tracking_links + self.scraper.display_links):
             self.url_check_label.configure(text='WARN: URL already added.', fg='brown')
             return
 
@@ -312,10 +312,7 @@ class Application:
         Append a link directly pointing to an image to the lists
         as no further actions are needed.
         """
-        self.scraper.download_links.append(url)
-        self.scraper.image_links.append(url)
-        self.log_text.newline('Added singular image:')
-        self.log_text.newline(f' -  {url}')
+        self.scraper.append_link(url)
 
     def process_ig_url(self, url):
         """
@@ -347,7 +344,7 @@ class Application:
 
         # Logging for IG links is done inside of this function already
         self.scraper.extract_ig_images(data)
-        self.scraper.image_links.append(url)
+        self.scraper.tracking_links.append(url)
 
     def process_imgur_url(self, url):
         """
