@@ -249,11 +249,10 @@ class Scraper:
         if os.path.exists(file_dst):
             return False
 
-        else:
-            with open(file_dst, 'wb') as dl_file:
-                res = requests.get(url)
-                dl_file.write(res.content)
-            return True
+        with open(file_dst, 'wb') as dl_file:
+            res = requests.get(url)
+            dl_file.write(res.content)
+        return True
 
     @staticmethod
     def youtube_dl_download(url):
