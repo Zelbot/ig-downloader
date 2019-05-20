@@ -74,24 +74,29 @@ class Scraper:
         """
         Extract the JSON data from an Imgur post's HTML source code.
         """
-        # The split has multiple spaces after 'image'
+        # The split for the data_str has multiple spaces after 'image'
         # to avoid errors due to "image " being in the title/description
         # Multiple spaces will get escaped in the html source code, like so:
         # "title":"image image\u00a0 \u00a0 \u00a0image"
-        try:
-            script = soup.find_all('script')[13]
-            text = script.get_text()
-            data_str = text.split('image   ')[1].strip(' :').split('group')[0].strip(' \n,')
-        # Sometimes the index for the script is different, not sure why though :(
-        except IndexError:
-            script = soup.find_all('script')[29]
-            text = script.get_text()
-            data_str = text.split('image   ')[1].strip(' :').split('group')[0].strip(' \n,')
+
+        script_tags = soup.find_all('script')
+        # The index of the script tag varies so a loop is safest
+        for script in script_tags:
+            try:
+                text = script.get_text()
+                data_str = text.split('image   ')[1].strip(' :').split('group')[0].strip(' \n,')
+                break
+            except IndexError:
+                pass
+        else:
+            message = 'Could not locate JSON data in Imgur post'
+            self.log_text.newline(message)
+            raise ValueError(message)
 
         # Log the script tag's index for debugging purposes
-        script_tags = soup.find_all('script')
         self.log_text.newline('Script tag of Imgur post containing JSON data'
-                              f' is at index {script_tags.index(script)} / {len(script_tags)}')
+                              f' is at index {script_tags.index(script)}'
+                              f' / {len(script_tags)}')
 
         return json.loads(data_str)
 
