@@ -7,6 +7,28 @@ import string
 import time
 # PIP
 import requests
+import youtube_dl
+
+
+class YDLLogger:
+    """
+    (Do not) log specific messages.
+    Raise error if a file is already present so we can catch it
+    and say if a file was downloaded or not.
+    """
+    already_downloaded = 'has already been downloaded'
+
+    def debug(self, msg):
+        if msg.endswith(self.already_downloaded):
+            file = msg.replace('[download]', '')
+            file = file.replace(self.already_downloaded, '')
+            raise youtube_dl.utils.SameFileError(f'{file.strip()} already present!')
+
+    def warning(self, msg):
+        pass
+
+    def error(self, msg):
+        pass
 
 
 class Scraper:
@@ -193,6 +215,61 @@ class Scraper:
         except TypeError:
             self.log_text.newline('Not a v.redd.it video - Skipping!')
 
+    def extract_gfycat_video(self, url):
+        """
+        Nothing to extract, this is just to keep the method calls uniform.
+        Note that Gfycat videos have to be downloaded using youtube_dl instead of requests.
+        """
+        self.append_link(url, type_='video')
+
+    def get_download_method(self, url):
+        """
+        Get the appropriate download method to execute as some
+        files require modules other than requests to be downloaded.
+        """
+        # Special criteria for non-requests downloads
+        criteria = {
+            url.startswith('https://gfycat.com'): self.youtube_dl_download,
+        }
+        for crit, method in criteria.items():
+            if crit is True:
+                return method
+
+        # Standard download method
+        return self.requests_download
+
+    def requests_download(self, url):
+        """
+        Download a file using the requests module.
+        Return a bool on whether or not the file was downloaded.
+        """
+        file_name = self.prep_filename(url)
+        file_dst = os.path.join(os.getcwd(), file_name)
+
+        if os.path.exists(file_dst):
+            return False
+
+        else:
+            with open(file_dst, 'wb') as dl_file:
+                res = requests.get(url)
+                dl_file.write(res.content)
+            return True
+
+    @staticmethod
+    def youtube_dl_download(url):
+        """
+        Download a file using the youtube_dl module.
+        Return a bool on whether or not the file was downloaded.
+        """
+        try:
+            ydl_opts = {'logger': YDLLogger()}
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+            return True
+
+        except youtube_dl.utils.SameFileError:
+            return False
+
     def download_files(self):
         """
         Download all the collected files.
@@ -203,32 +280,31 @@ class Scraper:
         dl_folder = 'downloads'
         if not os.path.exists(dl_folder) or not os.path.isdir(dl_folder):
             os.mkdir(dl_folder)
+        os.chdir(dl_folder)
 
-        for index, link in enumerate(self.download_links):
-            file_name = self.prep_filename(link)
-            file_dst = os.path.join(os.getcwd(), dl_folder, file_name)
+        for index, url in enumerate(self.download_links):
+            dl_method = self.get_download_method(url)
+            is_file_new = dl_method(url)
 
-            if os.path.exists(file_dst):
+            if is_file_new is True:
+                self.log_text.newline(f'Downloaded file {index+1}'
+                                      f' / {len(self.download_links)}')
+            else:
                 self.log_text.newline(f'File {index+1} / {len(self.download_links)}'
                                       ' already present, skipping')
-            else:
-                with open(file_dst, 'wb') as dl_file:
-                    res = requests.get(link)
-                    dl_file.write(res.content)
 
-                    self.log_text.newline(f'Downloaded file {index+1}'
-                                          f' / {len(self.download_links)}')
-
-            self.last_download = link
+            self.last_download = url
             time.sleep(0.5)
 
-    def prep_filename(self, link):
+        os.chdir('..')
+
+    def prep_filename(self, url):
         """
         Prepare the name of the file to download
         by using the link/URL.
         """
         ig_name_re = re.compile(r'.+\.(?:jpg|png|gif|mp4)')
-        file_name = link.split('/')[-1]
+        file_name = url.split('/')[-1]
 
         # Strip ?-arguments from IG file names
         if ig_name_re.match(file_name):

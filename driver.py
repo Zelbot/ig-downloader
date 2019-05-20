@@ -24,8 +24,11 @@ class Driver:
         Start a driver to be used for navigating and scraping pages.
         """
         if self.webdriver is None:
-            self.webdriver = webdriver.Chrome(executable_path=config.chromedriver_path,
-                                              chrome_options=config.chromedriver_options)
+            self.webdriver = webdriver.Chrome(
+                executable_path=config.chromedriver_path,
+                chrome_options=config.chromedriver_options,
+                desired_capabilities=config.desired_capabilities
+            )
             self.log_text.newline('Started webdriver')
         else:
             self.log_text.newline("Webdriver already present, can't start")

@@ -6,6 +6,7 @@ import threading
 import tkinter as tk
 from tkinter import ttk
 # PIP
+import requests
 from bs4 import BeautifulSoup
 # CUSTOM
 from driver import Driver
@@ -249,6 +250,7 @@ class Application:
         youtube_re = re.compile('https://(?:www\.)?youtube\.com/watch\?v=.+')
         yt_re = re.compile(r'https://youtu\.be/.+')
         reddit_re = re.compile(r'https?://(?:www|old)\.reddit\.com/r/.+')
+        gfycat_re = re.compile(r'https://gfycat\.com/\w+$(?<!-)')
 
         # Map URLs to the methods needed to extract the images in them
         # All of these methods take a single argument, the URL/text
@@ -259,6 +261,7 @@ class Application:
             youtube_re: self.process_yt_url,
             yt_re: self.process_yt_url,
             reddit_re: self.process_reddit_url,
+            gfycat_re: self.process_gfycat_url,
         }
 
         # We only need want to track Reddit URLs in JSON format
@@ -372,6 +375,36 @@ class Application:
         data_str = soup.find_all('pre')[0].text
         data = json.loads(data_str)
         self.scraper.extract_reddit_video(data)
+
+    def process_gfycat_url(self, url):
+        """
+        Check to see if the entered Gfycat URL is valid.
+        """
+        # Usually I would insist on doing everything with Selenium
+        # But it's so fucking slow with Gfycat (~5s to .get the URL)
+        # that it's better to use requests -.-
+        # With that being said, the commented out Selenium code does work
+
+        # self.driver.webdriver.get(url)
+        # self.log_text.newline('Got URL')
+        #
+        # logs = self.driver.webdriver.get_log('browser')
+        # messages = [log['message'] for log in logs]
+        # request_failed = ('Failed to load resource:'
+        #                   ' the server responded with a status of 404')
+        #
+        # if any(request_failed in message for message in messages):
+        #     self.log_text.newline('Invalid response 404 for Gfycat URL')
+        #     return
+
+        res = requests.get(url)
+        self.log_text.newline('Got URL')
+        if res.status_code != 200:
+            self.log_text.newline(f'Unexpected response code'
+                                  f' ({res.status_code}) for Gfycat URL')
+            return
+
+        self.scraper.extract_gfycat_video(url)
 
     def download_files(self):
         """
