@@ -356,6 +356,7 @@ class Application:
         """
         self.driver.webdriver.get(url)
         self.log_text.newline('Got URL')
+
         soup = BeautifulSoup(self.driver.webdriver.page_source, features='html.parser')
         self.scraper.extract_imgur_images(soup)
 
@@ -371,9 +372,12 @@ class Application:
         NOTE: Video and audio are separated on Reddit, so the audio will be missing.
         """
         self.driver.webdriver.get(url)
+        self.log_text.newline('Got URL')
+
         soup = BeautifulSoup(self.driver.webdriver.page_source, features='html.parser')
         data_str = soup.find_all('pre')[0].text
         data = json.loads(data_str)
+
         self.scraper.extract_reddit_video(data)
 
     def process_gfycat_url(self, url):
