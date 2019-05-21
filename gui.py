@@ -3,6 +3,7 @@ import inspect
 import json
 import re
 import threading
+import time
 import tkinter as tk
 from tkinter import ttk
 # PIP
@@ -269,6 +270,18 @@ class Application:
             text = self.url_entry.get().strip()
         if not text:
             return
+
+        # Allow pasting multiple links at once, separated by spaces
+        # Note that this isn't the intended way to use this
+        # So the inevitable blocking isn't accounted for
+        if len(text.split()) > 1:
+            for url in text.split():
+                self.check_url(text=url)
+                # Sleep to not spam APIs
+                time.sleep(0.5)
+            # Return to not handle the 'url1 url2 url3' input
+            else:
+                return
 
         # We only need want to track Reddit URLs in JSON format
         if self.reddit_re.match(text) and not text.endswith('.json'):
