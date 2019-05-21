@@ -124,7 +124,7 @@ class Application:
             width=int(self.left_frame.winfo_reqwidth() * 0.1),
             borderwidth=3,
         )
-        self.url_entry.bind('<Return>', lambda e: self.check_url(entry=self.url_entry))
+        self.url_entry.bind('<Return>', lambda e: self.check_url())
         self.url_entry.place(relx=0.5, rely=0.4, anchor='center')
 
         self.check_button = tk.Button(
@@ -136,7 +136,7 @@ class Application:
             font=('Arial', 12),
             cursor='hand2'
         )
-        self.check_button.bind('<ButtonRelease-1>', lambda e: self.check_url(entry=self.url_entry))
+        self.check_button.bind('<ButtonRelease-1>', lambda e: self.check_url())
         self.check_button.place(relx=0.5, rely=0.5, anchor='center')
 
         self.url_check_label = tk.Label(
@@ -259,17 +259,14 @@ class Application:
         )
         self.download_tracking_bar.place(relx=0.5, rely=0.5, anchor='center')
 
-    def check_url(self, entry=None, text=None):
+    def check_url(self, text=None):
         """
         Check the entered text of the given entry to see if it's accepted
         (link to .jpg, .png, .gif, or an Instagram post).
         Then process the URL as needed.
         """
-        if entry is None:
-            entry = self.url_entry
         if text is None:
-            text = entry.get().strip()
-
+            text = self.url_entry.get().strip()
         if not text:
             return
 
@@ -293,7 +290,7 @@ class Application:
         self.url_check_label.configure(text='OK: URL accepted', fg='black')
         self.process_url(text)
 
-        entry.delete(0, tk.END)
+        self.url_entry.delete(0, tk.END)
 
     def process_url(self, url):
         """
