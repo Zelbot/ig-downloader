@@ -76,7 +76,7 @@ class Application:
         # Make sure only IG posts are specified, not user's pages
         self.ig_url_re = re.compile(r'^https://www\.instagram\.com/p/.+/')
         self.general_img_re = re.compile(r'^https?://.+\..+\..+\.(?:jpg|png|gif)')
-        self.imgur_re = re.compile(r'^https://imgur\.com/(?:.)+$(?<!(png|gif|jpg))')
+        self.imgur_re = re.compile(r'^https?://imgur\.com/(?:.)+$(?<!(png|gif|jpg))')
         self.youtube_re = re.compile('https://(?:www\.)?youtube\.com/watch\?v=.+')
         self.yt_re = re.compile(r'https://youtu\.be/.+')
         self.reddit_re = re.compile(r'https?://(?:www|old)\.reddit\.com/r/.+')

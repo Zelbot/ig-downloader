@@ -91,7 +91,8 @@ class Scraper:
         else:
             message = 'Could not locate JSON data in Imgur post'
             self.log_text.newline(message)
-            raise ValueError(message)
+            # raise ValueError(message)
+            return None
 
         # Log the script tag's index for debugging purposes
         self.log_text.newline('Script tag of Imgur post containing JSON data'
@@ -183,6 +184,9 @@ class Scraper:
         scraping_images_from_imgur_using_selenium_and/e3h19xl/
         """
         data = self.get_imgur_data(soup)
+        # No JSON data could be found - post was deleted
+        if data is None:
+            return
 
         if 'album_images' in data.keys():
             urls = [f'https://i.imgur.com/{image["hash"]}{image["ext"]}'
