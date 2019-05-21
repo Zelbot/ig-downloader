@@ -338,7 +338,7 @@ class Application:
         Prepare data and handle extraction of images of Instagram posts.
         """
         self.driver.webdriver.get(url)
-        self.log_text.newline('Got URL')
+        self.log_text.newline(f'Got URL - {url}')
         soup = BeautifulSoup(self.driver.webdriver.page_source, features='html.parser')
         data = self.scraper.get_ig_data(soup)
         self.log_text.newline('Extracted JSON data')
@@ -371,7 +371,7 @@ class Application:
         and then actually extract them.
         """
         self.driver.webdriver.get(url)
-        self.log_text.newline('Got URL')
+        self.log_text.newline(f'Got URL - {url}')
 
         soup = BeautifulSoup(self.driver.webdriver.page_source, features='html.parser')
         self.scraper.extract_imgur_images(soup)
@@ -388,7 +388,7 @@ class Application:
         NOTE: Video and audio are separated on Reddit, so the audio will be missing.
         """
         self.driver.webdriver.get(url)
-        self.log_text.newline('Got URL')
+        self.log_text.newline(f'Got URL - {url}')
 
         soup = BeautifulSoup(self.driver.webdriver.page_source, features='html.parser')
         data_str = soup.find_all('pre')[0].text
@@ -412,7 +412,7 @@ class Application:
         # With that being said, the commented out Selenium code does work
 
         # self.driver.webdriver.get(url)
-        # self.log_text.newline('Got URL')
+        # self.log_text.newline(f'Got URL - {url}')
         #
         # logs = self.driver.webdriver.get_log('browser')
         # messages = [log['message'] for log in logs]
@@ -424,7 +424,7 @@ class Application:
         #     return
 
         res = requests.get(url)
-        self.log_text.newline('Got URL')
+        self.log_text.newline(f'Got URL - {url}')
         if res.status_code != 200:
             self.log_text.newline(f'Unexpected response code'
                                   f' ({res.status_code}) for Gfycat URL')
