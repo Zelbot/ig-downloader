@@ -207,6 +207,19 @@ class Scraper:
         # thumbnail_url = f'https://img.youtube.com/vi/{video_id}/0.jpg'
         self.append_link(thumbnail_url)
 
+    def extract_reddit_link(self, data):
+        """
+        Extract the URL which a Reddit post links to.
+        """
+        # Return the fallback URL for the v.redd.it video if possible
+        # else return the URL which the post links to
+        try:
+            media = data[0]['data']['children'][0]['data']['media']
+            return media['reddit_video']['fallback_url']
+        # media does not have 'reddit_video' key or is None
+        except (KeyError, TypeError):
+            return data[0]['data']['children'][0]['data']['url']
+
     def extract_reddit_video(self, data):
         """
         Extract the video of a v.redd.it upload.

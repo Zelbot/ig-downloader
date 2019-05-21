@@ -34,7 +34,10 @@ class Application:
         'mid_frame', 'url_tracking_label', 'url_tracking_text',
         'right_frame', 'log_text',
         'bottom_frame', 'download_tracking_label', 'download_tracking_bar',
-        'scraper', 'driver', 'login', 'extraction_methods'
+        'scraper', 'driver', 'login',
+        'ig_url_re', 'general_img_re', 'imgur_re', 'youtube_re', 'yt_re',
+        'reddit_re', 'reddit_fallback_re', 'gfycat_re',
+        'exprs',
     )
 
     def __init__(self, root):
@@ -67,7 +70,30 @@ class Application:
         self.driver = Driver(self.log_text)
         self.driver.start_driver()  # Start webdriver to be used for scraping
         self.login = None
-        self.extraction_methods = {}
+
+        # Lots of regexes to check the validity of wanted URLs
+        # Make sure only IG posts are specified, not user's pages
+        self.ig_url_re = re.compile(r'^https://www\.instagram\.com/p/.+/')
+        self.general_img_re = re.compile(r'^https?://.+\..+\..+\.(?:jpg|png|gif)')
+        self.imgur_re = re.compile(r'^https://imgur\.com/(?:.)+$(?<!(png|gif|jpg))')
+        self.youtube_re = re.compile('https://(?:www\.)?youtube\.com/watch\?v=.+')
+        self.yt_re = re.compile(r'https://youtu\.be/.+')
+        self.reddit_re = re.compile(r'https?://(?:www|old)\.reddit\.com/r/.+')
+        self.reddit_fallback_re = re.compile(r'https://v\.redd\.it/.+\?source=fallback')
+        self.gfycat_re = re.compile(r'https://gfycat\.com/\w+$(?<!-)')
+
+        # Map URLs to the methods needed to extract the images in them
+        # All of these methods take a single argument, the URL/text
+        self.exprs = {
+            self.ig_url_re: self.process_ig_url,
+            self.general_img_re: self.process_general_url,
+            self.imgur_re: self.process_imgur_url,
+            self.youtube_re: self.process_yt_url,
+            self.yt_re: self.process_yt_url,
+            self.reddit_re: self.process_reddit_url,
+            self.reddit_fallback_re: self.process_general_url,
+            self.gfycat_re: self.process_gfycat_url,
+        }
 
     def setup_left_frame(self):
         """
@@ -98,7 +124,7 @@ class Application:
             width=int(self.left_frame.winfo_reqwidth() * 0.1),
             borderwidth=3,
         )
-        self.url_entry.bind('<Return>', lambda e: self.check_url(self.url_entry))
+        self.url_entry.bind('<Return>', lambda e: self.check_url(entry=self.url_entry))
         self.url_entry.place(relx=0.5, rely=0.4, anchor='center')
 
         self.check_button = tk.Button(
@@ -110,7 +136,7 @@ class Application:
             font=('Arial', 12),
             cursor='hand2'
         )
-        self.check_button.bind('<ButtonRelease-1>', lambda e: self.check_url(self.url_entry))
+        self.check_button.bind('<ButtonRelease-1>', lambda e: self.check_url(entry=self.url_entry))
         self.check_button.place(relx=0.5, rely=0.5, anchor='center')
 
         self.url_check_label = tk.Label(
@@ -233,42 +259,25 @@ class Application:
         )
         self.download_tracking_bar.place(relx=0.5, rely=0.5, anchor='center')
 
-    def check_url(self, entry):
+    def check_url(self, entry=None, text=None):
         """
         Check the entered text of the given entry to see if it's accepted
         (link to .jpg, .png, .gif, or an Instagram post).
         Then process the URL as needed.
         """
-        text = entry.get().strip()
+        if entry is None:
+            entry = self.url_entry
+        if text is None:
+            text = entry.get().strip()
+
         if not text:
             return
 
-        # Make sure only posts are specified, not user's pages
-        ig_url_re = re.compile(r'^https://www\.instagram\.com/p/.+/')
-        general_img_re = re.compile(r'^https?://.+\..+\..+\.(?:jpg|png|gif)')
-        imgur_re = re.compile(r'^https://imgur\.com/(?:.)+$(?<!(png|gif|jpg))')
-        youtube_re = re.compile('https://(?:www\.)?youtube\.com/watch\?v=.+')
-        yt_re = re.compile(r'https://youtu\.be/.+')
-        reddit_re = re.compile(r'https?://(?:www|old)\.reddit\.com/r/.+')
-        gfycat_re = re.compile(r'https://gfycat\.com/\w+$(?<!-)')
-
-        # Map URLs to the methods needed to extract the images in them
-        # All of these methods take a single argument, the URL/text
-        exprs = {
-            ig_url_re: self.process_ig_url,
-            general_img_re: self.process_general_url,
-            imgur_re: self.process_imgur_url,
-            youtube_re: self.process_yt_url,
-            yt_re: self.process_yt_url,
-            reddit_re: self.process_reddit_url,
-            gfycat_re: self.process_gfycat_url,
-        }
-
         # We only need want to track Reddit URLs in JSON format
-        if reddit_re.match(text) and not text.endswith('.json'):
+        if self.reddit_re.match(text) and not text.endswith('.json'):
             text += '.json'
 
-        if not any(regex.match(text) for regex in exprs.keys()):
+        if not any(regex.match(text) for regex in self.exprs.keys()):
             self.url_check_label.configure(text='ERR: URL not accepted', fg='red')
             return
 
@@ -282,19 +291,19 @@ class Application:
             return
 
         self.url_check_label.configure(text='OK: URL accepted', fg='black')
-        self.process_url(exprs, text)
+        self.process_url(text)
 
         entry.delete(0, tk.END)
 
-    def process_url(self, exprs, url):
+    def process_url(self, url):
         """
         Differentiate between links to images and links to Instagram posts.
         Extract images from Instagram posts if needed.
         """
-        for regex in exprs.keys():
+        for regex in self.exprs.keys():
             # Guaranteed to happen for at least one regex
             if regex.match(url):
-                extraction_method = exprs[regex]
+                extraction_method = self.exprs[regex]
                 extraction_method(url)
                 break
 
@@ -375,7 +384,13 @@ class Application:
         data_str = soup.find_all('pre')[0].text
         data = json.loads(data_str)
 
-        self.scraper.extract_reddit_video(data)
+        post_url = self.scraper.extract_reddit_link(data)
+        # Need to process the URL which a Reddit post points to
+        # ... if it's not a self-post
+        if url.replace('/.json', '/') == post_url:
+            self.log_text.newline('Reddit post is a self-post, aborting')
+            return
+        self.check_url(text=post_url)
 
     def process_gfycat_url(self, url):
         """
