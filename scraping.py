@@ -207,7 +207,8 @@ class Scraper:
         # thumbnail_url = f'https://img.youtube.com/vi/{video_id}/0.jpg'
         self.append_link(thumbnail_url)
 
-    def extract_reddit_link(self, data):
+    @staticmethod
+    def extract_reddit_link(data):
         """
         Extract the URL which a Reddit post links to.
         """
