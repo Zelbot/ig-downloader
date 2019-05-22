@@ -314,7 +314,7 @@ class Application:
         if not text:
             return False
 
-        # We only need want to track Reddit URLs in JSON format
+        # We only need to track Reddit URLs in JSON format
         if self.reddit_re.match(text) and not text.endswith('.json'):
             text += '.json'
 
