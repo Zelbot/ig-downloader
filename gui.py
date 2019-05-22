@@ -301,10 +301,10 @@ class Application:
         else:
             is_input_accepted = self.check_url(text=text)
 
+        self.enable_input_widgets()
+        # Cannot delete text while widget is disabled
         if is_input_accepted is True:
             self.url_entry.delete(0, tk.END)
-
-        self.enable_input_widgets()
 
     def check_url(self, text=None):
         """
