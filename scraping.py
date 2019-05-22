@@ -333,12 +333,12 @@ class Scraper:
             file_name = ig_name_re.match(file_name).group(0)
 
         # Need to avoid same file names for YouTube thumbnails
-        elif file_name == 'maxresdefault.jpg':
+        if file_name == 'maxresdefault.jpg':
             rnd_str = self.get_random_string()
             file_name = f'maxresdefault_{rnd_str}.jpg'
 
         # Reddit videos contain this argument but no file extension
-        elif file_name.endswith('?source=fallback'):
+        if file_name.endswith('?source=fallback'):
             rnd_str = self.get_random_string()
             file_name = file_name.replace('?source=fallback', f'{rnd_str}.mp4')
 
