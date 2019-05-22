@@ -125,7 +125,8 @@ class Application:
             width=int(self.left_frame.winfo_reqwidth() * 0.1),
             borderwidth=3,
         )
-        self.url_entry.bind('<Return>', lambda e: self.check_url())
+        self.url_entry.bind('<Return>',
+                            lambda e: threading.Thread(target=self.process_input).start())
         self.url_entry.place(relx=0.5, rely=0.4, anchor='center')
 
         self.check_button = tk.Button(
@@ -137,7 +138,8 @@ class Application:
             font=('Arial', 12),
             cursor='hand2'
         )
-        self.check_button.bind('<ButtonRelease-1>', lambda e: self.check_url())
+        self.check_button.bind('<ButtonRelease-1>',
+                               lambda e: threading.Thread(target=self.process_input).start())
         self.check_button.place(relx=0.5, rely=0.5, anchor='center')
 
         self.url_check_label = tk.Label(
@@ -260,28 +262,57 @@ class Application:
         )
         self.download_tracking_bar.place(relx=0.5, rely=0.5, anchor='center')
 
-    def check_url(self, text=None):
+    def disable_input_widgets(self):
         """
-        Check the entered text of the given entry to see if it's accepted
-        (link to .jpg, .png, .gif, or an Instagram post).
-        Then process the URL as needed.
+        Disable the interactive widgets around input and downloading.
         """
-        if text is None:
-            text = self.url_entry.get().strip()
+        self.url_entry.configure(state='disabled')
+        self.check_button.configure(state='disabled')
+        self.start_dl_button.configure(state='disabled')
+
+    def enable_input_widgets(self):
+        """
+        Enable the interactive widgets around input and downloading.
+        """
+        self.url_entry.configure(state='normal')
+        self.check_button.configure(state='normal')
+        self.start_dl_button.configure(state='normal')
+
+    def process_input(self):
+        """
+        Disable the input widgets and check/process the input,
+        then enable the widgets again.
+        """
+        text = self.url_entry.get().strip()
         if not text:
             return
 
+        # Don't allow more input while current input is being processed
+        self.disable_input_widgets()
+
         # Allow pasting multiple links at once, separated by spaces
-        # Note that this isn't the intended way to use this
-        # So the inevitable blocking isn't accounted for
         if len(text.split()) > 1:
+            is_input_accepted = False
+
             for url in text.split():
-                self.check_url(text=url)
+                is_input_accepted = self.check_url(text=url)
                 # Sleep to not spam APIs
                 time.sleep(0.5)
-            # Return to not handle the 'url1 url2 url3' input
-            else:
-                return
+        else:
+            is_input_accepted = self.check_url(text=text)
+
+        if is_input_accepted is True:
+            self.url_entry.delete(0, tk.END)
+
+        self.enable_input_widgets()
+
+    def check_url(self, text=None):
+        """
+        Check the text to see if it fits one of the specified URL regexes.
+        Then process the URL as needed.
+        """
+        if not text:
+            return False
 
         # We only need want to track Reddit URLs in JSON format
         if self.reddit_re.match(text) and not text.endswith('.json'):
@@ -289,21 +320,22 @@ class Application:
 
         if not any(regex.match(text) for regex in self.exprs.keys()):
             self.url_check_label.configure(text='ERR: URL not accepted', fg='red')
-            return
+            return False
 
         if text in self.scraper.tracking_links + self.scraper.display_links:
             self.url_check_label.configure(text='WARN: URL already added.', fg='brown')
-            return
+            return False
 
         # In case a URL gets ctrl+v'd into the entry multiple times
         if any(link in text for link in self.scraper.tracking_links + self.scraper.display_links):
             self.url_check_label.configure(text='WARN: URL already added.', fg='brown')
-            return
+            return False
 
         self.url_check_label.configure(text='OK: URL accepted', fg='black')
         self.process_url(text)
 
-        self.url_entry.delete(0, tk.END)
+        # Signify that the method completed
+        return True
 
     def process_url(self, url):
         """
@@ -441,17 +473,13 @@ class Application:
             return
 
         # Disable some widgets to not mess with running downloads
-        self.url_entry.configure(state='disabled')
-        self.check_button.configure(state='disabled')
-        self.start_dl_button.configure(state='disabled')
+        self.disable_input_widgets()
 
         threading.Thread(target=self.scraper.download_files).start()
         # Intentionally block here to re-enable widgets only after this returns
         self.update_widgets()
 
-        self.url_entry.configure(state='normal')
-        self.check_button.configure(state='normal')
-        self.start_dl_button.configure(state='normal')
+        self.enable_input_widgets()
 
     def update_widgets(self):
         """
