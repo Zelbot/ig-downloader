@@ -36,7 +36,7 @@ class Scraper:
     __slots__ = (
         'log_text',
         'download_links', 'display_links', 'tracking_links',
-        'last_download'
+        'last_download', 'youtube_ids',
         )
 
     def __init__(self, log_text):
@@ -47,6 +47,7 @@ class Scraper:
         self.tracking_links = []  # Does NOT get reset after a download loop
 
         self.last_download = ''  # Track the last downloaded URL to update widgets
+        self.youtube_ids = []  # Track YouTube video-IDs to add them to the file names
 
     @staticmethod
     def get_random_string(amount=10):
@@ -206,10 +207,12 @@ class Scraper:
             video_id = url.split('watch?v=')[1].split('?')[0]
         else:
             video_id = url.split('/')[-1].split('?')[0]
+        self.youtube_ids.append(video_id)
 
-        thumbnail_url = f'https://img.youtube.com/vi/{video_id}/maxresdefault.jpg'
-        # thumbnail_url = f'https://img.youtube.com/vi/{video_id}/0.jpg'
-        self.append_link(thumbnail_url)
+        maxres_url = f'https://img.youtube.com/vi/{video_id}/maxresdefault.jpg'
+        hqdefault_url = f'https://img.youtube.com/vi/{video_id}/hqdefault.jpg'
+        self.append_link(maxres_url)
+        self.append_link(hqdefault_url)
 
     @staticmethod
     def extract_reddit_link(data):
@@ -334,8 +337,16 @@ class Scraper:
 
         # Need to avoid same file names for YouTube thumbnails
         if file_name == 'maxresdefault.jpg':
-            rnd_str = self.get_random_string()
-            file_name = f'maxresdefault_{rnd_str}.jpg'
+            video_id = self.youtube_ids[0]
+            file_name = f'maxresdefault_{video_id}.jpg'
+
+        # More YouTube thumbnails
+        if file_name == 'hqdefault.jpg':
+            # maxresdefault equivalents get downloaded immediately before hqdefaults
+            # due to them being added one after another
+            # so we can remove the video ID from the list
+            video_id = self.youtube_ids.pop(0)
+            file_name = f'hqdefault_{video_id}.jpg'
 
         # Reddit videos contain this argument but no file extension
         if file_name.endswith('?source=fallback'):
