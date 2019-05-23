@@ -339,8 +339,8 @@ class Application:
 
     def process_url(self, url):
         """
-        Differentiate between links to images and links to Instagram posts.
-        Extract images from Instagram posts if needed.
+        Get the corresponding extraction method of a URL by matching a regex,
+        then execute the method and update the tracking label.
         """
         for regex in self.exprs.keys():
             # Guaranteed to happen for at least one regex
