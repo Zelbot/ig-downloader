@@ -248,6 +248,23 @@ class Scraper:
         """
         self.append_link(url, type_='video')
 
+    def extract_tumblr_links(self, soup):
+        """
+        Extract the link(s) to the images/videos of a Tumblr post.
+        """
+        slideshow = soup.find_all('div', {'class': 'photo-slideshow'})
+
+        # Single file
+        if not slideshow:
+            photo = soup.find_all('div', {'class': 'photo'})[0]
+            self.append_link(photo.find_next('img')['src'], type_='file')
+            return
+
+        # Multiple files
+        imgs = slideshow[0].find_all('img')
+        for index, img in enumerate(imgs):
+            self.append_link(img['src'], type_='file', index=index, list_=imgs)
+
     def get_download_method(self, url):
         """
         Get the appropriate download method to execute as some

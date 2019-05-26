@@ -115,3 +115,22 @@ class Driver:
         else:
             self.log_text.newline('2FA code is invalid')
         return login_complete
+
+    def confirm_tumblr_gdpr(self):
+        """
+        Press the "confirm" button when navigating to a Tumblr page
+        for the first time in a session.
+        It is expected to have navigated to a Tumblr page before calling this.
+        """
+        # confirm_button = [
+        #     element for element in self.webdriver.find_elements_by_class_name('btn')
+        #     if element.get_attribute('data-submit') == 'agree'
+        # ]
+        confirm_button = self.webdriver.find_elements_by_xpath(
+            "//button[@class='btn yes'][@data-submit='agree']"
+        )
+        if not confirm_button:
+            return
+
+        confirm_button[0].click()
+        self.log_text.newline('Clicked accept button for Tumblr GDPR')

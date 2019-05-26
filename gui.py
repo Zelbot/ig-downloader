@@ -10,6 +10,7 @@ from tkinter import ttk
 import requests
 from bs4 import BeautifulSoup
 # CUSTOM
+import config
 from driver import Driver
 from scraping import Scraper
 
@@ -37,7 +38,7 @@ class Application:
         'bottom_frame', 'download_tracking_label', 'download_tracking_bar',
         'scraper', 'driver', 'login',
         'ig_url_re', 'general_img_re', 'imgur_re', 'youtube_re', 'yt_re',
-        'reddit_re', 'reddit_fallback_re', 'gfycat_re',
+        'reddit_re', 'reddit_fallback_re', 'gfycat_re', 'tumblr_re',
         'exprs',
     )
 
@@ -82,6 +83,7 @@ class Application:
         self.reddit_re = re.compile(r'https?://(?:www|old)\.reddit\.com/r/(\w+)/.+')
         self.reddit_fallback_re = re.compile(r'https://v\.redd\.it/.+\?source=fallback')
         self.gfycat_re = re.compile(r'https://gfycat\.com/\w+$(?<!-)')
+        self.tumblr_re = re.compile(r'https://(.+)\.tumblr\.com/post/(\d+)(?:/.+)?')
 
         # Map URLs to the methods needed to extract the images in them
         # All of these methods take a single argument, the URL/text
@@ -94,6 +96,7 @@ class Application:
             self.reddit_re: self.process_reddit_url,
             self.reddit_fallback_re: self.process_general_url,
             self.gfycat_re: self.process_gfycat_url,
+            self.tumblr_re: self.process_tumblr_url,
         }
 
     def setup_left_frame(self):
@@ -463,6 +466,24 @@ class Application:
             return
 
         self.scraper.extract_gfycat_video(url)
+
+    def process_tumblr_url(self, url):
+        """
+        Complete extra navigation step if necessary.
+        Prep BeautifulSoup to be used in extraction.
+        """
+        self.driver.webdriver.get(url)
+        self.driver.log_text.newline(f'Got URL - {url}')
+        self.driver.confirm_tumblr_gdpr()
+
+        # Wait for page to reload
+        while True:
+            soup = BeautifulSoup(self.driver.webdriver.page_source, features='html.parser')
+            if config.tumblr_ascii_logo not in str(soup):
+                break
+            time.sleep(0.2)
+
+        self.scraper.extract_tumblr_links(soup)
 
     def download_files(self):
         """
