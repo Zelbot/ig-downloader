@@ -265,6 +265,14 @@ class Scraper:
         for index, img in enumerate(imgs):
             self.append_link(img['src'], type_='file', index=index, list_=imgs)
 
+    def extract_twitter_images(self, soup):
+        """
+        Extract image links of a Twitter post.
+        """
+        image_links = soup.find_all('meta', {'property': 'og:image'})
+        for index, link in enumerate(image_links):
+            self.append_link(link['content'], index=index, list_=image_links)
+
     def get_download_method(self, url):
         """
         Get the appropriate download method to execute as some
@@ -346,11 +354,16 @@ class Scraper:
         by using the link/URL.
         """
         ig_name_re = re.compile(r'.+\.(?:jpg|png|gif|mp4)')
+        twimg_re = re.compile(r'https://pbs\.twimg\.com/media/(.+\.(?:png|jpg)):large')
         file_name = url.split('/')[-1]
 
         # Strip ?-arguments from IG file names
         if ig_name_re.match(file_name):
             file_name = ig_name_re.match(file_name).group(0)
+
+        # Strip 'large' suffix from Twitter file names
+        if twimg_re.match(file_name):
+            file_name = twimg_re.match(file_name).group(1)
 
         # Need to avoid same file names for YouTube thumbnails
         if file_name == 'maxresdefault.jpg':

@@ -38,7 +38,7 @@ class Application:
         'bottom_frame', 'download_tracking_label', 'download_tracking_bar',
         'scraper', 'driver', 'login',
         'ig_url_re', 'general_img_re', 'imgur_re', 'youtube_re', 'yt_re',
-        'reddit_re', 'reddit_fallback_re', 'gfycat_re', 'tumblr_re',
+        'reddit_re', 'reddit_fallback_re', 'gfycat_re', 'tumblr_re', 'twitter_re',
         'exprs',
     )
 
@@ -84,6 +84,7 @@ class Application:
         self.reddit_fallback_re = re.compile(r'https://v\.redd\.it/.+\?source=fallback')
         self.gfycat_re = re.compile(r'https://gfycat\.com/\w+$(?<!-)')
         self.tumblr_re = re.compile(r'https://(.+)\.tumblr\.com/post/(\d+)(?:/.+)?')
+        self.twitter_re = re.compile(r'https://twitter.com/.+/status/(\d+)')
 
         # Map URLs to the methods needed to extract the images in them
         # All of these methods take a single argument, the URL/text
@@ -97,6 +98,7 @@ class Application:
             self.reddit_fallback_re: self.process_general_url,
             self.gfycat_re: self.process_gfycat_url,
             self.tumblr_re: self.process_tumblr_url,
+            self.twitter_re: self.process_twitter_url,
         }
 
     def setup_left_frame(self):
@@ -484,6 +486,16 @@ class Application:
             time.sleep(0.2)
 
         self.scraper.extract_tumblr_links(soup)
+
+    def process_twitter_url(self, url):
+        """
+        Navigate to the Twitter URL and prep BeautifulSoup object.
+        """
+        self.driver.webdriver.get(url)
+        self.driver.log_text.newline(f'Got URL - {url}')
+
+        soup = BeautifulSoup(self.driver.webdriver.page_source, features='html.parser')
+        self.scraper.extract_twitter_images(soup)
 
     def download_files(self):
         """
