@@ -222,7 +222,13 @@ class Scraper:
         # Return the fallback URL for the v.redd.it video if possible
         # else return the URL which the post links to
         try:
-            media = data[0]['data']['children'][0]['data']['media']
+            data_key = data[0]['data']['children'][0]['data']
+
+            if 'crosspost_parent_list' in data_key.keys():
+                media = data[0]['data']['children'][0]['data']['crosspost_parent_list'][0]['media']
+            else:
+                media = data[0]['data']['children'][0]['data']['media']
+
             return media['reddit_video']['fallback_url']
         # media does not have 'reddit_video' key or is None
         except (KeyError, TypeError):
