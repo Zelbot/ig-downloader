@@ -80,7 +80,7 @@ class Application:
         self.imgur_re = re.compile(r'^https?://imgur\.com/(?:.)+$(?<!(png|gif|jpg))')
         self.youtube_re = re.compile('https://(?:www\.)?youtube\.com/watch\?v=.+')
         self.yt_re = re.compile(r'https://youtu\.be/.+')
-        self.reddit_re = re.compile(r'https?://(?:www|old)\.reddit\.com/r/(\w+)/.+')
+        self.reddit_re = re.compile(r'https?://(?:www|old)\.reddit\.com/(?:r|u|user)/(\w+)/.+')
         self.reddit_fallback_re = re.compile(r'https://v\.redd\.it/.+\?source=fallback')
         self.gfycat_re = re.compile(r'https://gfycat\.com/\w+$(?<!-)')
         self.tumblr_re = re.compile(r'https://(.+)\.tumblr\.com/post/(\d+)(?:/.+)?')
