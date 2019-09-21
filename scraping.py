@@ -177,6 +177,14 @@ class Scraper:
             if 'video_url' in shortcode_media.keys():
                 self.append_link(shortcode_media['video_url'], type_='video')
 
+    def extract_ig_avatar(self, soup):
+        """
+        Extract the image link pointing to an Instagram user's avatar
+        (from the source code of instadp.com).
+        """
+        avatar_url = soup.find('img', {'class': 'picture'})['src']
+        self.append_link(avatar_url)
+
     def extract_imgur_images(self, soup):
         """
         Extract all images from an imgur post.

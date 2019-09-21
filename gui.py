@@ -37,7 +37,7 @@ class Application:
         'right_frame', 'log_text',
         'bottom_frame', 'download_tracking_label', 'download_tracking_bar',
         'scraper', 'driver', 'login',
-        'ig_url_re', 'general_img_re', 'imgur_re', 'youtube_re', 'yt_re',
+        'ig_url_re', 'ig_profile_url_re', 'general_img_re', 'imgur_re', 'youtube_re', 'yt_re',
         'reddit_re', 'reddit_fallback_re', 'gfycat_re', 'tumblr_re', 'twitter_re',
         'exprs',
     )
@@ -76,6 +76,7 @@ class Application:
         # Lots of regexes to check the validity of wanted URLs
         # Make sure only IG posts are specified, not user's pages
         self.ig_url_re = re.compile(r'^https://www\.instagram\.com/p/.+/')
+        self.ig_profile_url_re = re.compile(r'^https://www\.instagram\.com/(\w+|\d+)/$')
         self.general_img_re = re.compile(r'^https?://.+\..+\..+\.(?:jpg|png|gif)')
         self.imgur_re = re.compile(r'^https?://imgur\.com/(?:.)+$(?<!(png|gif|jpg))')
         self.youtube_re = re.compile('https://(?:www\.)?youtube\.com/watch\?v=.+')
@@ -90,6 +91,7 @@ class Application:
         # All of these methods take a single argument, the URL/text
         self.exprs = {
             self.ig_url_re: self.process_ig_url,
+            self.ig_profile_url_re: self.process_ig_profile_url,
             self.general_img_re: self.process_general_url,
             self.imgur_re: self.process_imgur_url,
             self.youtube_re: self.process_yt_url,
@@ -405,6 +407,19 @@ class Application:
         # Logging for IG links is done inside of this function already
         self.scraper.extract_ig_images(data)
         self.scraper.tracking_links.append(url)
+
+    def process_ig_profile_url(self, url):
+        """
+        Extract an Instagram user's profile name and get their
+        avatar's URL from instadp.com.
+        """
+        profile_name = self.ig_profile_url_re.match(url).group(1)
+        instadp_url = f'https://www.instadp.com/profile/{profile_name}'
+        self.driver.webdriver.get(instadp_url)
+        self.log_text.newline(f'Got URL - {url}')
+
+        soup = BeautifulSoup(self.driver.webdriver.page_source, features='html.parser')
+        self.scraper.extract_ig_avatar(soup)
 
     def process_imgur_url(self, url):
         """
