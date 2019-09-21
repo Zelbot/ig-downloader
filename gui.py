@@ -368,7 +368,11 @@ class Application:
         Append a link directly pointing to an image to the lists
         as no further actions are needed.
         """
-        self.scraper.append_link(url)
+        type_ = 'image'
+        if url.startswith('https://v.redd.it/'):
+            type_ = 'video'
+
+        self.scraper.append_link(url, type_=type_)
 
     def process_ig_url(self, url):
         """
