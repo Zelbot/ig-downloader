@@ -8,6 +8,7 @@ import time
 # PIP
 import requests
 import youtube_dl
+from bs4 import BeautifulSoup
 
 
 class YDLLogger:
@@ -270,14 +271,32 @@ class Scraper:
 
         # Single file
         if not slideshow:
-            photo = soup.find_all('div', {'class': 'photo'})[0]
-            self.append_link(photo.find_next('img')['src'], type_='file')
+            photo = soup.find_all('div', {'class': 'photo'})
+            video = soup.find_all('div', {'class': 'tumblr_video_container'})
+
+            if photo:
+                self.append_link(photo[0].find_next('img')['src'], type_='file')
+            else:
+                self.extract_tumblr_video(video[0])
             return
 
         # Multiple files
         imgs = slideshow[0].find_all('img')
         for index, img in enumerate(imgs):
             self.append_link(img['src'], type_='file', index=index, list_=imgs)
+
+    def extract_tumblr_video(self, container):
+        """
+        Extract the link to a Tumblr video using the URL
+        specified in the div with the class "tumblr_video_container"
+        in the source code of the original Tumblr post.
+        """
+        container_src = container.find_next('iframe')['src']
+        res = requests.get(container_src)
+        soup = BeautifulSoup(res.text, features='html.parser')
+
+        video_source = soup.find('video').find_next('source')
+        self.append_link(video_source['src'], type_='video')
 
     def extract_twitter_images(self, soup):
         """
