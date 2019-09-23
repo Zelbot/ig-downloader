@@ -9,7 +9,6 @@ python -m venv venv
 source venv/bin/activate  
 python -m pip install -r requirements.txt  
 ```
-LPT: If you want to find out what to put in your config, `grep "config\." *.py` makes it a lot easier.
 
 ## Sidenote
 This started out as a way to ease the downloads of images uploaded to Instagram (hence the name),
