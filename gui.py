@@ -738,6 +738,7 @@ class LoginWindow(tk.Toplevel):
         # To get another 2FA code sent to us
         self.two_fa_label.configure(fg='red')
         self.driver.main_login(self.username, self.password)
+        self.show_two_fa()
 
 
 class ScrollText(tk.Text):

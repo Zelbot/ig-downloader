@@ -70,7 +70,7 @@ class Driver:
 
         self.log_text.newline('Entered login credentials and confirmed entries')
         self.log_text.newline('Waiting a little longer here...')
-        time.sleep(3)
+        time.sleep(7)
 
         # Login not successful, credentials are invalid
         if self.webdriver.current_url == login_url:
@@ -79,7 +79,7 @@ class Driver:
             return credentials_valid, two_fa_needed
 
         # Login successful, but 2FA needed
-        if self.webdriver.current_url == two_fa_url:
+        if self.webdriver.current_url.split('?')[0] == two_fa_url:
             self.log_text.newline('Login credentials valid but 2FA is enabled')
             credentials_valid, two_fa_needed = (True, True)
             return credentials_valid, two_fa_needed
@@ -106,9 +106,9 @@ class Driver:
 
         self.log_text.newline('Entered 2FA verification code')
         self.log_text.newline('Waiting a little longer here...')
-        time.sleep(5)
+        time.sleep(7)
 
-        login_complete = self.webdriver.current_url != two_fa_url
+        login_complete = self.webdriver.current_url.split('?')[0] != two_fa_url
         if login_complete is True:
             self.log_text.newline('Login complete')
             self.log_text.newline('.')
