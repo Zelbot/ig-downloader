@@ -35,13 +35,14 @@ class YDLLogger:
 class Scraper:
 
     __slots__ = (
-        'log_text',
+        'log_text', 'download_tracking_label',
         'download_links', 'display_links', 'tracking_links',
         'last_download', 'youtube_ids',
         )
 
-    def __init__(self, log_text):
-        self.log_text = log_text
+    def __init__(self, log_text, download_tracking_label):
+        self.log_text = log_text  # tk.Widget of the Application class
+        self.download_tracking_label = download_tracking_label  # tk.Widget of the Application class
 
         self.display_links = []  # Links to be displayed in the GUI (gets reset after dl loop)
         self.download_links = []  # DOES get reset after a download loop
@@ -71,6 +72,10 @@ class Scraper:
         else:
             self.log_text.newline(f'Added singular {type_}:')
         self.log_text.newline(f' -  {self.download_links[-1]}\n')
+
+        self.download_tracking_label.configure(
+            text=f'Downloaded 0 / {len(self.download_links)} files'
+        )
 
     def get_imgur_data(self, soup):
         """

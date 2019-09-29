@@ -68,7 +68,7 @@ class Application:
         self.setup_bottom_frame()
 
         # Initialise classes here so we can pass the logging widget
-        self.scraper = Scraper(self.log_text)
+        self.scraper = Scraper(self.log_text, self.download_tracking_label)
         self.driver = Driver(self.log_text)
         self.driver.start_driver()  # Start webdriver to be used for scraping
         self.login = None
@@ -358,9 +358,6 @@ class Application:
 
         self.scraper.display_links.append(url)
         self.url_tracking_text.display_these_lines(self.scraper.display_links)
-        self.download_tracking_label.configure(
-            text=f'Downloaded 0 / {len(self.scraper.download_links)} files'
-        )
 
         self.log_text.newline('URL processing complete')
         self.log_text.newline('.')
