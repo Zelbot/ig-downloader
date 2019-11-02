@@ -411,7 +411,7 @@ class Application:
         avatar's URL from instadp.com.
         """
         profile_name = self.ig_profile_url_re.match(url).group(1)
-        instadp_url = f'https://www.instadp.com/profile/{profile_name}'
+        instadp_url = f'https://www.instadp.com/fullsize/{profile_name}'
         self.driver.webdriver.get(instadp_url)
         self.log_text.newline(f'Got URL - {url}')
 
