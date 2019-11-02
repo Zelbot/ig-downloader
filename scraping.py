@@ -208,7 +208,7 @@ class Scraper:
                                  type_='image', index=index, list_=edges)
 
                 if 'video_url' in edge['node'].keys():
-                    self.append_link(edge['node']['video'],
+                    self.append_link(edge['node']['video_url'],
                                      type_='video', index=index, list_=edges)
 
         # Single image/video
