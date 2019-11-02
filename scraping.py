@@ -117,11 +117,27 @@ class Scraper:
         user = self.get_ig_user(data)
         return user['is_private']
 
+    def is_followed(self, data):
+        """
+        Check if an Instagram page is being followed.
+        """
+        user = self.get_ig_user(data)
+        return user['followed_by_viewer']
+
     @staticmethod
     def get_ig_data(soup):
         """
         Extract the JSON data from an Instagram page's HTML source code.
         """
+        # Private profiles have their JSON data stored in a different tag
+        for s in soup.find_all('script'):
+            if s.text.startswith('window.__additionalDataLoaded'):
+                script = s
+
+                # Strip string around the JSON object
+                data = json.loads(','.join(script.text.split(',')[1:])[:-2])
+                return data
+
         # Look for script tag holding JSON data, raise if none found
         for s in soup.find_all('script'):
             if s.text.startswith('window._sharedData'):
@@ -137,12 +153,30 @@ class Scraper:
         return data
 
     @staticmethod
+    def make_ig_data_uniform(data):
+        """
+        Make sure the data keys are uniform between different tags.
+        Adjust the data from public profiles to fit that of private profiles.
+        """
+        # Data was pulled from a public profile
+        if 'entry_data' in data.keys():
+            if 'ProfilePage' in data['entry_data'].keys():
+                data = data['entry_data']['ProfilePage'][0]
+            elif 'PostPage' in data['entry_data'].keys():
+                data = data['entry_data']['PostPage'][0]
+
+        return data
+
+    @staticmethod
     def get_ig_user(data):
         """
         Get the user dict from JSON data.
         """
+        # Scraped a private profile that is being followed
+        if 'entry_data' not in data.keys():
+            user = data['graphql']['shortcode_media']['owner']
         # Scraped a profile
-        if 'ProfilePage' in data['entry_data'].keys():
+        elif 'ProfilePage' in data['entry_data'].keys():
             user = data['entry_data']['ProfilePage'][0]['graphql']['user']
         # Scraped a post
         else:
@@ -155,14 +189,15 @@ class Scraper:
         Extract all image URLs from the HTML source code of an Instagram post.
         (Also extracts video URLs (got added later on))
         """
+        data = self.make_ig_data_uniform(data)
+
         # Private page which is not being followed
-        if 'PostPage' not in data['entry_data'].keys():
+        if self.is_private(data) is True and self.is_followed(data) is False:
             user = self.get_ig_user(data)
             self.log_text.newline(f'Cannot access profile of {user["username"]} - Skipping!')
             return
 
-        # Bunch of fucking magic right here
-        shortcode_media = data['entry_data']['PostPage'][0]['graphql']['shortcode_media']
+        shortcode_media = data['graphql']['shortcode_media']
 
         # Album
         if 'edge_sidecar_to_children' in shortcode_media.keys():
